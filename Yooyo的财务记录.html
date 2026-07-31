@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!-- saved from url=(0065)https://c87cb7eca7a0c2d0-106-55-153-123.serveousercontent.com/app -->
-<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -214,54 +214,26 @@ input[type=number]{-moz-appearance:textfield;}
 <div class="app">
   <div class="main">
     <div class="topbar">
-      <button class="edit-toggle" id="editToggle" style="display: block;">编辑</button>
+      <button class="edit-toggle" id="editToggle" style="display:none">编辑</button>
       <h1 id="pageTitle">花费明细</h1>
-      <button class="right-btn" id="monthBtn" style="display: flex;">📅</button>
-      <svg class="hk-bow hk-bow-tl" viewBox="0 0 100 60"><g fill="#e8477a"><ellipse cx="25" cy="30" rx="22" ry="18"></ellipse><ellipse cx="75" cy="30" rx="22" ry="18"></ellipse><circle cx="50" cy="30" r="12"></circle><ellipse cx="18" cy="20" rx="5" ry="4" fill="#fff" opacity="0.5"></ellipse><ellipse cx="68" cy="20" rx="5" ry="4" fill="#fff" opacity="0.5"></ellipse></g></svg>
+      <button class="right-btn" id="monthBtn" style="display:none">📅</button>
+      <svg class="hk-bow hk-bow-tl" viewBox="0 0 100 60"><g fill="#e8477a"><ellipse cx="25" cy="30" rx="22" ry="18"/><ellipse cx="75" cy="30" rx="22" ry="18"/><circle cx="50" cy="30" r="12"/><ellipse cx="18" cy="20" rx="5" ry="4" fill="#fff" opacity="0.5"/><ellipse cx="68" cy="20" rx="5" ry="4" fill="#fff" opacity="0.5"/></g></svg>
     </div>
     <div class="content">
 
       <!-- ========== 花费页（默认首页） ========== -->
       <section class="page active" id="page-expense">
         <div class="today-card">
-          <svg style="position:absolute;top:8px;left:12px;width:28px;opacity:0.3" viewBox="0 0 100 95"><g><ellipse cx="50" cy="50" rx="40" ry="35" fill="#fff" stroke="#e8477a" stroke-width="2"></ellipse><polygon points="20,20 35,40 15,42" fill="#fff" stroke="#e8477a" stroke-width="2"></polygon><polygon points="80,20 65,40 85,42" fill="#fff" stroke="#e8477a" stroke-width="2"></polygon><circle cx="38" cy="50" r="3" fill="#e8477a"></circle><circle cx="62" cy="50" r="3" fill="#e8477a"></circle><ellipse cx="50" cy="60" rx="5" ry="3" fill="#ffd93d"></ellipse></g></svg>
-          <svg style="position:absolute;top:8px;right:12px;width:28px;opacity:0.3" viewBox="0 0 100 95"><g><ellipse cx="50" cy="50" rx="40" ry="35" fill="#fff" stroke="#e8477a" stroke-width="2"></ellipse><polygon points="20,20 35,40 15,42" fill="#fff" stroke="#e8477a" stroke-width="2"></polygon><polygon points="80,20 65,40 85,42" fill="#fff" stroke="#e8477a" stroke-width="2"></polygon><circle cx="38" cy="50" r="3" fill="#e8477a"></circle><circle cx="62" cy="50" r="3" fill="#e8477a"></circle><ellipse cx="50" cy="60" rx="5" ry="3" fill="#ffd93d"></ellipse></g></svg>
+          <svg style="position:absolute;top:8px;left:12px;width:28px;opacity:0.3" viewBox="0 0 100 95"><g><ellipse cx="50" cy="50" rx="40" ry="35" fill="#fff" stroke="#e8477a" stroke-width="2"/><polygon points="20,20 35,40 15,42" fill="#fff" stroke="#e8477a" stroke-width="2"/><polygon points="80,20 65,40 85,42" fill="#fff" stroke="#e8477a" stroke-width="2"/><circle cx="38" cy="50" r="3" fill="#e8477a"/><circle cx="62" cy="50" r="3" fill="#e8477a"/><ellipse cx="50" cy="60" rx="5" ry="3" fill="#ffd93d"/></g></svg>
+          <svg style="position:absolute;top:8px;right:12px;width:28px;opacity:0.3" viewBox="0 0 100 95"><g><ellipse cx="50" cy="50" rx="40" ry="35" fill="#fff" stroke="#e8477a" stroke-width="2"/><polygon points="20,20 35,40 15,42" fill="#fff" stroke="#e8477a" stroke-width="2"/><polygon points="80,20 65,40 85,42" fill="#fff" stroke="#e8477a" stroke-width="2"/><circle cx="38" cy="50" r="3" fill="#e8477a"/><circle cx="62" cy="50" r="3" fill="#e8477a"/><ellipse cx="50" cy="60" rx="5" ry="3" fill="#ffd93d"/></g></svg>
           <div class="t-label">🎀 今日花费</div>
-          <div class="t-value" id="todayExpense">¥0.00</div>
+          <div class="t-value" id="todayExpense">¥0</div>
           <div class="t-sub" id="todaySub">0 笔</div>
         </div>
 
         <div class="card">
           <div class="card-title">🍓 日花费柱状图</div>
-          <div class="bar-chart" id="barChart"><div class="bar-col">
-      <div class="bar-amt"></div>
-      <div class="bar-wrap"><div class="bar-fill" style="height:2%"></div></div>
-      <div class="bar-lbl">六</div>
-    </div><div class="bar-col">
-      <div class="bar-amt"></div>
-      <div class="bar-wrap"><div class="bar-fill" style="height:2%"></div></div>
-      <div class="bar-lbl">日</div>
-    </div><div class="bar-col">
-      <div class="bar-amt"></div>
-      <div class="bar-wrap"><div class="bar-fill" style="height:2%"></div></div>
-      <div class="bar-lbl">一</div>
-    </div><div class="bar-col">
-      <div class="bar-amt"></div>
-      <div class="bar-wrap"><div class="bar-fill" style="height:2%"></div></div>
-      <div class="bar-lbl">二</div>
-    </div><div class="bar-col">
-      <div class="bar-amt"></div>
-      <div class="bar-wrap"><div class="bar-fill" style="height:2%"></div></div>
-      <div class="bar-lbl">三</div>
-    </div><div class="bar-col">
-      <div class="bar-amt"></div>
-      <div class="bar-wrap"><div class="bar-fill" style="height:2%"></div></div>
-      <div class="bar-lbl">四</div>
-    </div><div class="bar-col">
-      <div class="bar-amt"></div>
-      <div class="bar-wrap"><div class="bar-fill" style="height:2%"></div></div>
-      <div class="bar-lbl">五</div>
-    </div></div>
+          <div class="bar-chart" id="barChart"></div>
         </div>
 
         <div class="card">
@@ -270,7 +242,7 @@ input[type=number]{-moz-appearance:textfield;}
             <span class="ch-arrow" id="pmArrow">▸</span>
           </div>
           <div class="collapse-body" id="pmBody" style="max-height:0">
-            <div class="list-group" id="payMethodStats" style="margin-bottom:0;box-shadow:none"><div class="list-row"><div class="icon-box ch-wechat-pay">🎀</div><div class="body"><div class="t1">微信余额</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box ch-intimate">💞</div><div class="body"><div class="t1">微信亲密付</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box ch-alipay-pay">💙</div><div class="body"><div class="t1">支付宝余额</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box ch-family-pay">🌸</div><div class="body"><div class="t1">支付宝亲情卡</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box ch-ali-bank">🍰</div><div class="body"><div class="t1">银行卡</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box ch-douyin">🌺</div><div class="body"><div class="t1">花呗</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div></div>
+            <div class="list-group" id="payMethodStats" style="margin-bottom:0;box-shadow:none"></div>
           </div>
         </div>
 
@@ -280,15 +252,15 @@ input[type=number]{-moz-appearance:textfield;}
             <span class="ch-arrow" id="platArrow">▸</span>
           </div>
           <div class="collapse-body" id="platBody" style="max-height:0">
-            <div class="list-group" id="platformStats" style="margin-bottom:0;box-shadow:none"><div class="list-row"><div class="icon-box" style="background:var(--bg-card-2);color:var(--label-secondary)">🎀</div><div class="body"><div class="t1">淘宝</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box" style="background:var(--bg-card-2);color:var(--label-secondary)">🐶</div><div class="body"><div class="t1">京东</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box" style="background:var(--bg-card-2);color:var(--label-secondary)">🍓</div><div class="body"><div class="t1">拼多多</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box" style="background:var(--bg-card-2);color:var(--label-secondary)">📕</div><div class="body"><div class="t1">小红书</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box" style="background:var(--bg-card-2);color:var(--label-secondary)">🎵</div><div class="body"><div class="t1">抖音</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box" style="background:var(--bg-card-2);color:var(--label-secondary)">🌸</div><div class="body"><div class="t1">乐一番</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box" style="background:var(--bg-card-2);color:var(--label-secondary)">⛏️</div><div class="body"><div class="t1">挖煤姬</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div><div class="list-row"><div class="icon-box" style="background:var(--bg-card-2);color:var(--label-secondary)">💕</div><div class="body"><div class="t1">微信转账</div><div class="t2">0 笔</div></div><div class="amt red">¥0.00</div></div></div>
+            <div class="list-group" id="platformStats" style="margin-bottom:0;box-shadow:none"></div>
           </div>
         </div>
 
         <div class="section-head">
           <span class="stitle">🐱 花费明细</span>
-          <span class="month-pill" id="expenseMonthPill">2026年07月</span>
+          <span class="month-pill" id="expenseMonthPill">本月</span>
         </div>
-        <div class="list-group" id="expenseList"><div class="empty"><div class="emoji">🐱</div><div class="txt">还没有花费记录哦～<br>点右下角🎀添加吧</div></div></div>
+        <div class="list-group" id="expenseList"></div>
       </section>
 
       <!-- ========== 概览页 ========== -->
@@ -297,7 +269,7 @@ input[type=number]{-moz-appearance:textfield;}
           <div class="collapse-header" id="ovAssetToggle">
             <span class="card-title">🐱 当前资产</span>
             <span style="display:flex;align-items:center;gap:6px">
-              <span id="ovAssetTotal" style="font-size:16px;font-weight:800;font-feature-settings:&#39;tnum&#39;">¥0</span>
+              <span id="ovAssetTotal" style="font-size:16px;font-weight:800;font-feature-settings:'tnum'">¥0</span>
               <span class="ch-arrow" id="ovAssetArrow">▸</span>
             </span>
           </div>
@@ -346,7 +318,7 @@ input[type=number]{-moz-appearance:textfield;}
           <div id="balMonthGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
           <div style="margin-top:12px;padding-top:10px;border-top:0.5px solid var(--separator);display:flex;justify-content:space-between;font-size:13px;font-weight:700">
             <span style="color:var(--label-secondary)">全年结余</span>
-            <span id="balYearTotal" style="font-feature-settings:&#39;tnum&#39;;color:var(--blue-dark)">¥0</span>
+            <span id="balYearTotal" style="font-feature-settings:'tnum';color:var(--blue-dark)">¥0</span>
           </div>
         </div>
 
@@ -354,7 +326,7 @@ input[type=number]{-moz-appearance:textfield;}
           <div class="card-title">🍓 本月储蓄目标</div>
           <div class="progress-ring-wrap">
             <div class="progress-ring">
-              <svg width="88" height="88"><circle class="track" cx="44" cy="44" r="38" fill="none" stroke-width="7"></circle><circle class="bar" id="ovRingBar" cx="44" cy="44" r="38" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="238.76"></circle></svg>
+              <svg width="88" height="88"><circle class="track" cx="44" cy="44" r="38" fill="none" stroke-width="7"/><circle class="bar" id="ovRingBar" cx="44" cy="44" r="38" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="238.76"/></svg>
               <div class="center"><div class="pct" id="ovRingPct">0%</div><div class="cap">达成率</div></div>
             </div>
             <div class="ring-info"><div class="ri-title" id="ovRingTitle">目标 ¥0</div><div class="ri-line">已存: <span class="num" id="ovRingSaved">¥0</span></div><div class="ri-line">还需: <span class="num" id="ovRingLeft">¥0</span></div></div>
@@ -365,7 +337,7 @@ input[type=number]{-moz-appearance:textfield;}
           <div class="card-title">🎀 全年储蓄目标</div>
           <div class="progress-ring-wrap">
             <div class="progress-ring">
-              <svg width="88" height="88"><circle class="track" cx="44" cy="44" r="38" fill="none" stroke-width="7"></circle><circle class="bar" id="ovYearRingBar" cx="44" cy="44" r="38" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="238.76" style="stroke:var(--purple)"></circle></svg>
+              <svg width="88" height="88"><circle class="track" cx="44" cy="44" r="38" fill="none" stroke-width="7"/><circle class="bar" id="ovYearRingBar" cx="44" cy="44" r="38" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="238.76" style="stroke:var(--purple)"/></svg>
               <div class="center"><div class="pct" id="ovYearRingPct">0%</div><div class="cap">达成率</div></div>
             </div>
             <div class="ring-info"><div class="ri-title" id="ovYearRingTitle">目标 ¥0</div><div class="ri-line">已存: <span class="num" id="ovYearRingSaved">¥0</span></div><div class="ri-line">还需: <span class="num" id="ovYearRingLeft">¥0</span></div></div>
@@ -414,7 +386,7 @@ input[type=number]{-moz-appearance:textfield;}
     <a class="tab-item" data-page="budget"><span class="ico">🍓</span><span>预算</span></a>
     <a class="tab-item" data-page="income"><span class="ico">🍰</span><span>收入</span></a>
   </nav>
-  <svg class="hk-bow hk-bow-br" viewBox="0 0 100 60"><g fill="#e8477a"><ellipse cx="25" cy="30" rx="22" ry="18"></ellipse><ellipse cx="75" cy="30" rx="22" ry="18"></ellipse><circle cx="50" cy="30" r="12"></circle></g></svg>
+  <svg class="hk-bow hk-bow-br" viewBox="0 0 100 60"><g fill="#e8477a"><ellipse cx="25" cy="30" rx="22" ry="18"/><ellipse cx="75" cy="30" rx="22" ry="18"/><circle cx="50" cy="30" r="12"/></g></svg>
 </div>
 
 <button class="fab" id="fab">+</button>
@@ -1066,7 +1038,21 @@ document.getElementById('importFileInput').addEventListener('change', (e) => {
   };
   reader.readAsText(file);
 });
+
+/* ==================== 页面可见时自动刷新（确保今日花费始终为当天） ==================== */
+let _lastRenderDate = todayStr();
+function checkDateAndRefresh() {
+  const today = todayStr();
+  if (today !== _lastRenderDate) {
+    _lastRenderDate = today;
+    render();
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) checkDateAndRefresh();
+});
+window.addEventListener('pageshow', checkDateAndRefresh);
+setInterval(checkDateAndRefresh, 60000);
 </script>
-
-
-</body></html>
+</body>
+</html>
