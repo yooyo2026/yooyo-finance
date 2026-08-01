@@ -86,12 +86,14 @@ input[type=number]{-moz-appearance:textfield;}
 .stat-cell.c-expense::after{background:var(--red);}
 .stat-cell.c-budget::after{background:var(--blue);}
 .stat-cell.c-last::after{background:var(--purple);}
+.stat-cell.c-intimate::after{background:var(--pink);}
 .stat-cell .lbl{font-size:12px;color:var(--label-secondary);margin-bottom:6px;font-weight:600;display:flex;align-items:center;gap:5px;}
 .stat-cell .val{font-size:22px;font-weight:800;font-feature-settings:"tnum";letter-spacing:-0.5px;}
 .stat-cell .val.green{color:var(--green);}
 .stat-cell .val.red{color:var(--red);}
 .stat-cell .val.blue{color:var(--blue-dark);}
 .stat-cell .val.purple{color:var(--purple);}
+.stat-cell .val.pink{color:var(--pink);}
 
 /* 今日花费大卡片 */
 .today-card{background:linear-gradient(135deg,#fff0f6,#ffd6e0,#ffb3c9);border-radius:24px;padding:20px;margin:0 0 14px 0;box-shadow:var(--shadow-lg);text-align:center;border:2px solid #ffb3c9;position:relative;overflow:hidden;}
@@ -324,6 +326,20 @@ input[type=number]{-moz-appearance:textfield;}
           </div>
         </div>
 
+        <div class="card" id="intimateCard">
+          <div class="collapse-header" id="ovIntimateToggle">
+            <span class="card-title">💞 亲密付</span>
+            <span style="display:flex;align-items:center;gap:6px">
+              <span id="ovIntimateTotal" style="font-size:16px;font-weight:800;font-feature-settings:'tnum'">¥4,500</span>
+              <span class="ch-arrow" id="ovIntimateArrow">▸</span>
+            </span>
+          </div>
+          <div class="collapse-body" id="ovIntimateBody" style="max-height:0">
+            <div id="ovIntimateRows"></div>
+            <button class="btn-secondary" id="editIntimateBtn" style="margin-top:8px">✨ 编辑亲密付基数</button>
+          </div>
+        </div>
+
         <div class="card" id="snapshotCard">
           <div class="snapshot-header">
             <span class="card-title">📊 月度财务快照</span>
@@ -349,6 +365,10 @@ input[type=number]{-moz-appearance:textfield;}
             <div class="stat-cell c-budget" style="grid-column:span 2">
               <div class="lbl">💕 本月结余 (上月收入−本月支出)</div>
               <div class="val blue" id="ovBalance">¥0</div>
+            </div>
+            <div class="stat-cell c-intimate" style="grid-column:span 2">
+              <div class="lbl">💞 亲密付支出</div>
+              <div class="val pink" id="ovIntimateExp">¥0</div>
             </div>
           </div>
         </div>
@@ -399,6 +419,17 @@ input[type=number]{-moz-appearance:textfield;}
                 <span class="ch-arrow" id="sumBalArrow">▸</span>
               </div>
               <div class="summary-detail" id="sumBalDetail" style="max-height:0"></div>
+            </div>
+            <div class="summary-row" id="summaryIntimate">
+              <div class="summary-row-header">
+                <div class="summary-icon" style="background:var(--pink)">💞</div>
+                <div class="summary-info">
+                  <div class="summary-label">亲密付支出</div>
+                  <div class="summary-val" id="totalIntimate">¥0</div>
+                </div>
+                <span class="ch-arrow" id="sumIntArrow">▸</span>
+              </div>
+              <div class="summary-detail" id="sumIntDetail" style="max-height:0"></div>
             </div>
           </div>
         </div>
@@ -501,9 +532,9 @@ const STORAGE_KEY = 'yooyo_finance_v2';
 const DEFAULT_DATA = {
   income: [],
   expense: [],
-  assets: { wxBalance:0, aliBalance:0, bankCard:0, deposit:0, finance:0, fund:0 },
+  assets: { wxBalance:0, aliBalance:0, bankCard:0, deposit:0, finance:0, fund:0, intimatePay:4500 },
   // 手动编辑基数（区分自动变动和手动部分）
-  _assetManual: { wxBalance:0, aliBalance:0, bankCard:0, deposit:0, finance:0, fund:0 },
+  _assetManual: { wxBalance:0, aliBalance:0, bankCard:0, deposit:0, finance:0, fund:0, intimatePay:4500 },
   budget: { warnPercent:80, savingGoal:0, yearSavingGoal:0,
     sub: {
       '文具':0,'玩具':0,'衣物':0,'餐饮':0,'人情':0,'健康':0,'个人其他':0,
@@ -681,7 +712,9 @@ function renderOverview() {
   const mk = state._snapshotMonth;
   const [sy, sm] = mk.split('-').map(Number);
   const monthIncome = state.income.filter(x=>x.date.startsWith(mk)).reduce((s,x)=>s+Number(x.amount),0);
-  const monthExpense = state.expense.filter(x=>x.date.startsWith(mk)).reduce((s,x)=>s+Number(x.amount),0);
+  // 本月支出排除亲密付
+  const monthExpense = state.expense.filter(x=>x.date.startsWith(mk) && !['wechat_intimate','ali_family'].includes(x.method)).reduce((s,x)=>s+Number(x.amount),0);
+  const monthIntimate = state.expense.filter(x=>x.date.startsWith(mk) && ['wechat_intimate','ali_family'].includes(x.method)).reduce((s,x)=>s+Number(x.amount),0);
 
   // 上月收入（基于快照月份的上一个月）
   const lastM = new Date(sy, sm-1-1, 1);
@@ -701,12 +734,13 @@ function renderOverview() {
 
   document.getElementById('ovIncome').textContent = fmtShort(monthIncome);
   document.getElementById('ovExpense').textContent = fmtShort(monthExpense);
+  document.getElementById('ovIntimateExp').textContent = fmtShort(monthIntimate);
 
   // 快照月份标签
   document.getElementById('snapshotMonthPill').textContent = mk.replace('-','年')+'月';
 
   // 资产：手动基数 + 自动关联计算
-  if (!state._assetManual) state._assetManual = { wxBalance:0, aliBalance:0, bankCard:0, deposit:0, finance:0, fund:0 };
+  if (!state._assetManual) state._assetManual = { wxBalance:0, aliBalance:0, bankCard:0, deposit:0, finance:0, fund:0, intimatePay:4500 };
   const manual = state._assetManual;
 
   // 微信余额 = 手动基数 + 微信收入 - 微信余额支出
@@ -726,13 +760,17 @@ function renderOverview() {
   const hbExpense = state.expense.filter(x=>x.method==='huabei').reduce((s,x)=>s+Number(x.amount),0);
   const bankBalance = (manual.bankCard||0) + ktIncome + bkIncome - bkExpense - hbExpense;
 
+  // 亲密付 = 手动基数 - 微信亲密付支出 - 支付宝亲情卡支出
+  const intExp = state.expense.filter(x=>['wechat_intimate','ali_family'].includes(x.method)).reduce((s,x)=>s+Number(x.amount),0);
+  const intimatePay = Math.max(0, (manual.intimatePay||4500) - intExp);
+
   // 存款、理财、基金纯手动
   const deposit = manual.deposit||0;
   const finance = manual.finance||0;
   const fund = manual.fund||0;
 
   // 同步回 state.assets
-  state.assets = { wxBalance, aliBalance, bankCard: bankBalance, deposit, finance, fund };
+  state.assets = { wxBalance, aliBalance, bankCard: bankBalance, deposit, finance, fund, intimatePay };
 
   const ASSET_KEYS = [
     { key:'wxBalance', label:'微信余额', cls:'ch-weixin', icon:'🎀' },
@@ -748,6 +786,14 @@ function renderOverview() {
   if (!state._assetOpen) state._assetOpen = false;
   document.getElementById('ovAssetBody').style.maxHeight = state._assetOpen?'600px':'0';
   document.getElementById('ovAssetArrow').textContent = state._assetOpen?'▾':'▸';
+
+  // 亲密付卡片
+  document.getElementById('ovIntimateTotal').textContent = fmtShort(intimatePay);
+  const intimateLeft = Math.max(0, (manual.intimatePay||4500) - intExp);
+  document.getElementById('ovIntimateRows').innerHTML = `<div class="list-row"><div class="icon-box ch-intimate">💞</div><div class="body"><div class="t1">亲密付余额</div><div class="t2">月额度 ¥${(manual.intimatePay||4500).toLocaleString()} · 已用 ${fmtShort(intExp)}</div></div><div class="amt">${fmtShort(intimateLeft)}</div></div>`;
+  if (!state._intimateOpen) state._intimateOpen = false;
+  document.getElementById('ovIntimateBody').style.maxHeight = state._intimateOpen?'200px':'0';
+  document.getElementById('ovIntimateArrow').textContent = state._intimateOpen?'▾':'▸';
 
   // 预警线
   const warnPct = state.budget.warnPercent||80;
@@ -775,7 +821,7 @@ function renderOverview() {
   // 全年储蓄目标
   const yearGoal = state.budget.yearSavingGoal||0;
   const nowY = new Date().getFullYear();
-  const yearSaved = state.income.filter(x=>x.date.startsWith(String(nowY))).reduce((s,x)=>s+Number(x.amount),0) - state.expense.filter(x=>x.date.startsWith(String(nowY))).reduce((s,x)=>s+Number(x.amount),0);
+  const yearSaved = state.income.filter(x=>x.date.startsWith(String(nowY))).reduce((s,x)=>s+Number(x.amount),0) - state.expense.filter(x=>x.date.startsWith(String(nowY)) && !['wechat_intimate','ali_family'].includes(x.method)).reduce((s,x)=>s+Number(x.amount),0);
   const yearPct = yearGoal>0?Math.min(100,Math.max(0,yearSaved/yearGoal*100)):0;
   document.getElementById('ovYearRingBar').style.strokeDashoffset = circ*(1-yearPct/100);
   document.getElementById('ovYearRingBar').style.stroke = yearPct>=100?'var(--green)':(yearPct>=60?'var(--purple)':'var(--orange)');
@@ -786,7 +832,7 @@ function renderOverview() {
 
   // 收入支出概览
   if (!state._balYear) state._balYear = new Date().getFullYear();
-  if (!state._sumOpen) state._sumOpen = { income:false, expense:false, balance:false };
+  if (!state._sumOpen) state._sumOpen = { income:false, expense:false, balance:false, intimate:false };
   const sumYear = state._balYear;
   const curYear = new Date().getFullYear();
   const curMonth = new Date().getMonth();
@@ -794,11 +840,13 @@ function renderOverview() {
   document.getElementById('sumPrevYear').disabled = (sumYear <= 2020);
   document.getElementById('sumNextYear').disabled = (sumYear >= curYear);
 
-  // 累计全部收入/支出
+  // 累计全部收入/支出（支出排除亲密付）
   const totalInc = state.income.reduce((s,x)=>s+Number(x.amount),0);
-  const totalExp = state.expense.reduce((s,x)=>s+Number(x.amount),0);
+  const totalExp = state.expense.filter(x=>!['wechat_intimate','ali_family'].includes(x.method)).reduce((s,x)=>s+Number(x.amount),0);
+  const totalInt = state.expense.filter(x=>['wechat_intimate','ali_family'].includes(x.method)).reduce((s,x)=>s+Number(x.amount),0);
   document.getElementById('totalIncome').textContent = fmtShort(totalInc);
   document.getElementById('totalExpense').textContent = fmtShort(totalExp);
+  document.getElementById('totalIntimate').textContent = fmtShort(totalInt);
 
   // 累计结余 = 所有月份 (上月收入 − 当月支出) 之和
   // 收集所有出现过的年月，逐月计算
@@ -811,7 +859,7 @@ function renderOverview() {
     const [y,m] = ym.split('-').map(Number);
     const prevMk = (m===1 ? (y-1)+'-12' : y+'-'+String(m-1).padStart(2,'0'));
     const prevInc = state.income.filter(x=>x.date.startsWith(prevMk)).reduce((s,x)=>s+Number(x.amount),0);
-    const mExp = state.expense.filter(x=>x.date.startsWith(ym)).reduce((s,x)=>s+Number(x.amount),0);
+    const mExp = state.expense.filter(x=>x.date.startsWith(ym) && !['wechat_intimate','ali_family'].includes(x.method)).reduce((s,x)=>s+Number(x.amount),0);
     totalBal += (prevInc - mExp);
   });
   document.getElementById('totalBalance').textContent = fmtShort(totalBal);
@@ -829,7 +877,9 @@ function renderOverview() {
       if (type === 'income') {
         val = state.income.filter(x=>x.date.startsWith(ym)).reduce((s,x)=>s+Number(x.amount),0);
       } else if (type === 'expense') {
-        val = state.expense.filter(x=>x.date.startsWith(ym)).reduce((s,x)=>s+Number(x.amount),0);
+        val = state.expense.filter(x=>x.date.startsWith(ym) && !['wechat_intimate','ali_family'].includes(x.method)).reduce((s,x)=>s+Number(x.amount),0);
+      } else if (type === 'intimate') {
+        val = state.expense.filter(x=>x.date.startsWith(ym) && ['wechat_intimate','ali_family'].includes(x.method)).reduce((s,x)=>s+Number(x.amount),0);
       } else if (type === 'balance') {
         const prevMk = (m===0 ? (sumYear-1)+'-12' : sumYear+'-'+String(m).padStart(2,'0'));
         const prevInc = state.income.filter(x=>x.date.startsWith(prevMk)).reduce((s,x)=>s+Number(x.amount),0);
@@ -837,7 +887,7 @@ function renderOverview() {
         val = prevInc - mExp;
       }
       if (isFuture) continue;
-      const color = type === 'income' ? 'var(--green)' : (type === 'expense' ? 'var(--red)' : (val>0?'var(--green)':(val<0?'var(--red)':'var(--label-tertiary)')));
+      const color = type === 'income' ? 'var(--green)' : (type === 'expense' ? 'var(--red)' : (type === 'intimate' ? 'var(--pink)' : (val>0?'var(--green)':(val<0?'var(--red)':'var(--label-tertiary)'))));
       rows.push(`<div class="month-row"><span class="mr-label">${monthNames[m]}</span><span class="mr-val" style="color:${color}">${fmtShort(val)}</span></div>`);
     }
     return rows.length ? rows.join('') : '<div class="month-row"><span class="mr-label" style="color:var(--label-tertiary)">暂无记录</span><span class="mr-val">—</span></div>';
@@ -847,12 +897,15 @@ function renderOverview() {
   document.getElementById('sumIncDetail').innerHTML = buildMonthRows('income');
   document.getElementById('sumExpDetail').innerHTML = buildMonthRows('expense');
   document.getElementById('sumBalDetail').innerHTML = buildMonthRows('balance');
+  document.getElementById('sumIntDetail').innerHTML = buildMonthRows('intimate');
   document.getElementById('sumIncDetail').style.maxHeight = sumOpen.income ? '600px' : '0';
   document.getElementById('sumExpDetail').style.maxHeight = sumOpen.expense ? '600px' : '0';
   document.getElementById('sumBalDetail').style.maxHeight = sumOpen.balance ? '600px' : '0';
+  document.getElementById('sumIntDetail').style.maxHeight = sumOpen.intimate ? '600px' : '0';
   document.getElementById('sumIncArrow').textContent = sumOpen.income ? '▾' : '▸';
   document.getElementById('sumExpArrow').textContent = sumOpen.expense ? '▾' : '▸';
   document.getElementById('sumBalArrow').textContent = sumOpen.balance ? '▾' : '▸';
+  document.getElementById('sumIntArrow').textContent = sumOpen.intimate ? '▾' : '▸';
 }
 
 /* ==================== 预算页 ==================== */
@@ -1230,10 +1283,10 @@ document.getElementById('snapshotMonthPill').addEventListener('click', () => {
 });
 
 // 收入支出概览：行展开/折叠
-['Income','Expense','Balance'].forEach(name => {
+['Income','Expense','Balance','Intimate'].forEach(name => {
   const key = name.toLowerCase();
   document.getElementById('summary'+name).querySelector('.summary-row-header').addEventListener('click', () => {
-    if (!state._sumOpen) state._sumOpen = { income:false, expense:false, balance:false };
+    if (!state._sumOpen) state._sumOpen = { income:false, expense:false, balance:false, intimate:false };
     state._sumOpen[key] = !state._sumOpen[key];
     renderOverview();
   });
@@ -1246,6 +1299,26 @@ document.getElementById('sumPrevYear').addEventListener('click', () => {
 document.getElementById('sumNextYear').addEventListener('click', () => {
   const curY = new Date().getFullYear();
   if (state._balYear < curY) { state._balYear++; renderOverview(); }
+});
+
+// 亲密付卡片展开/折叠
+document.getElementById('ovIntimateToggle').addEventListener('click', ()=>{
+  state._intimateOpen = !state._intimateOpen; renderOverview();
+});
+
+// 编辑亲密付基数
+document.getElementById('editIntimateBtn').addEventListener('click', ()=>{
+  const manual = state._assetManual || {};
+  sheetTitle.textContent = '✨ 编辑亲密付基数';
+  sheetBody.innerHTML = `<div class="field"><label>亲密付月额度</label><input type="number" id="ast_intimatePay" value="${manual.intimatePay||4500}" step="0.01" placeholder="4500"></div>
+    <div style="font-size:11px;color:var(--label-tertiary);margin-bottom:10px;line-height:1.5">💡 每月1日自动重置为设定额度。微信亲密付和支付宝亲情卡支出会自动从额度中扣除。</div>
+    <button class="btn-primary" id="saveIntimateBtn">保存</button>`;
+  sheetBody.querySelector('#saveIntimateBtn').addEventListener('click', ()=>{
+    if (!state._assetManual) state._assetManual = {};
+    state._assetManual.intimatePay = parseFloat(document.getElementById('ast_intimatePay')?.value) || 0;
+    save(); renderOverview(); closeSheet(); toast('亲密付基数已更新 ✅');
+  });
+  sheetMask.classList.add('show'); sheet.classList.add('show');
 });
 
 /* ==================== 编辑资产 ==================== */
