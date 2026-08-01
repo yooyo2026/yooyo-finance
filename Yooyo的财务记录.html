@@ -227,6 +227,28 @@ input[type=number]{-moz-appearance:textfield;}
 .mp-months .mp-month:active{background:var(--blue-light);}
 .mp-months .mp-month.active{background:linear-gradient(135deg,var(--blue),var(--blue-dark));color:#fff;border-color:transparent;}
 .mp-months .mp-month.future{opacity:0.3;cursor:default;}
+
+/* 月度财务快照 */
+.snapshot-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.snapshot-header .month-pill{padding:6px 14px;border-radius:20px;background:var(--blue-light);color:var(--blue-dark);font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--blue);transition:all .15s;-webkit-user-select:none;user-select:none;}
+.snapshot-header .month-pill:active{background:var(--blue);color:#fff;}
+
+/* 收入支出概览 */
+.summary-rows{display:flex;flex-direction:column;gap:10px;}
+.summary-row{border-radius:14px;overflow:hidden;background:var(--bg-card-2);border:1px solid var(--separator);}
+.summary-row-header{display:flex;align-items:center;gap:12px;padding:14px 14px;cursor:pointer;-webkit-user-select:none;user-select:none;}
+.summary-row-header:active{opacity:0.8;}
+.summary-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#fff;}
+.summary-info{flex:1;min-width:0;}
+.summary-label{font-size:13px;color:var(--label-secondary);font-weight:600;margin-bottom:2px;}
+.summary-val{font-size:18px;font-weight:800;font-feature-settings:'tnum';color:var(--label);letter-spacing:-0.3px;}
+.summary-detail{overflow:hidden;transition:max-height .3s ease;}
+.summary-detail .month-row{display:flex;justify-content:space-between;align-items:center;padding:9px 14px 9px 66px;border-top:0.5px solid var(--separator);font-size:13px;}
+.summary-detail .month-row .mr-label{color:var(--label-secondary);font-weight:600;}
+.summary-detail .month-row .mr-val{font-weight:700;font-feature-settings:'tnum';}
+.summary-year-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.summary-year-bar button{background:var(--bg-card-2);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--label);}
+.summary-year-bar .yr-label{font-size:18px;font-weight:800;color:var(--blue-dark);}
 </style>
 </head>
 <body>
@@ -302,46 +324,82 @@ input[type=number]{-moz-appearance:textfield;}
           </div>
         </div>
 
-        <div class="stat-grid">
-          <div class="stat-cell c-last">
-            <div class="lbl">🌸 上月收入</div>
-            <div class="val purple" id="ovLastIncome">¥0</div>
+        <div class="card" id="snapshotCard">
+          <div class="snapshot-header">
+            <span class="card-title">📊 月度财务快照</span>
+            <span class="month-pill" id="snapshotMonthPill">本月</span>
           </div>
-          <div class="stat-cell c-budget">
-            <div class="lbl">🎀 本月预算</div>
-            <div class="val blue" id="ovBudget">¥0</div>
-          </div>
-          <div class="stat-cell c-expense">
-            <div class="lbl">🍰 本月支出</div>
-            <div class="val red" id="ovExpense">¥0</div>
-          </div>
-          <div class="stat-cell c-income">
-            <div class="lbl">🍓 本月收入</div>
-            <div class="val green" id="ovIncome">¥0</div>
-          </div>
-          <div class="stat-cell c-budget" style="grid-column:span 2">
-            <div class="lbl">💕 本月结余 (上月收入−本月支出)</div>
-            <div class="val blue" id="ovBalance">¥0</div>
+          <div class="stat-grid">
+            <div class="stat-cell c-last">
+              <div class="lbl">🌸 上月收入</div>
+              <div class="val purple" id="ovLastIncome">¥0</div>
+            </div>
+            <div class="stat-cell c-budget">
+              <div class="lbl">🎀 本月预算</div>
+              <div class="val blue" id="ovBudget">¥0</div>
+            </div>
+            <div class="stat-cell c-expense">
+              <div class="lbl">🍰 本月支出</div>
+              <div class="val red" id="ovExpense">¥0</div>
+            </div>
+            <div class="stat-cell c-income">
+              <div class="lbl">🍓 本月收入</div>
+              <div class="val green" id="ovIncome">¥0</div>
+            </div>
+            <div class="stat-cell c-budget" style="grid-column:span 2">
+              <div class="lbl">💕 本月结余 (上月收入−本月支出)</div>
+              <div class="val blue" id="ovBalance">¥0</div>
+            </div>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title">🚨 支出预警线</div>
+          <div class="card-title">🚨 本月支出预警</div>
           <div class="warn-bar"><div class="fill" id="ovWarnFill" style="width:0%"></div><div class="threshold" id="ovWarnThresh" style="left:0%"></div></div>
           <div class="warn-legend"><span id="ovWarnUsed">已用 ¥0</span><span id="ovWarnLimit">预警线 ¥0</span></div>
         </div>
 
-        <div class="card">
-          <div class="card-title">🐱 月度结余概览</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <button id="balPrevYear" style="background:var(--bg-card-2);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--label)">‹</button>
-            <span id="balYearLabel" style="font-size:18px;font-weight:800;color:var(--blue-dark)">2026</span>
-            <button id="balNextYear" style="background:var(--bg-card-2);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--label)">›</button>
+        <div class="card" id="summaryCard">
+          <div class="card-title">📈 收入支出概览</div>
+          <div class="summary-year-bar">
+            <button id="sumPrevYear">‹</button>
+            <span class="yr-label" id="sumYearLabel">2026</span>
+            <button id="sumNextYear">›</button>
           </div>
-          <div id="balMonthGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
-          <div style="margin-top:12px;padding-top:10px;border-top:0.5px solid var(--separator);display:flex;justify-content:space-between;font-size:13px;font-weight:700">
-            <span style="color:var(--label-secondary)">全年结余</span>
-            <span id="balYearTotal" style="font-feature-settings:'tnum';color:var(--blue-dark)">¥0</span>
+          <div class="summary-rows">
+            <div class="summary-row" id="summaryIncome">
+              <div class="summary-row-header">
+                <div class="summary-icon" style="background:var(--green)">🍓</div>
+                <div class="summary-info">
+                  <div class="summary-label">累计收入</div>
+                  <div class="summary-val" id="totalIncome">¥0</div>
+                </div>
+                <span class="ch-arrow" id="sumIncArrow">▸</span>
+              </div>
+              <div class="summary-detail" id="sumIncDetail" style="max-height:0"></div>
+            </div>
+            <div class="summary-row" id="summaryExpense">
+              <div class="summary-row-header">
+                <div class="summary-icon" style="background:var(--red)">🍰</div>
+                <div class="summary-info">
+                  <div class="summary-label">累计支出</div>
+                  <div class="summary-val" id="totalExpense">¥0</div>
+                </div>
+                <span class="ch-arrow" id="sumExpArrow">▸</span>
+              </div>
+              <div class="summary-detail" id="sumExpDetail" style="max-height:0"></div>
+            </div>
+            <div class="summary-row" id="summaryBalance">
+              <div class="summary-row-header">
+                <div class="summary-icon" style="background:var(--purple)">💕</div>
+                <div class="summary-info">
+                  <div class="summary-label">累计结余</div>
+                  <div class="summary-val" id="totalBalance">¥0</div>
+                </div>
+                <span class="ch-arrow" id="sumBalArrow">▸</span>
+              </div>
+              <div class="summary-detail" id="sumBalDetail" style="max-height:0"></div>
+            </div>
           </div>
         </div>
 
@@ -618,14 +676,16 @@ function renderExpense() {
 
 /* ==================== 概览页 ==================== */
 function renderOverview() {
-  const mk = monthKey();
+  // 月度财务快照：使用所选月份，默认当前月
+  if (!state._snapshotMonth) state._snapshotMonth = monthKey();
+  const mk = state._snapshotMonth;
+  const [sy, sm] = mk.split('-').map(Number);
   const monthIncome = state.income.filter(x=>x.date.startsWith(mk)).reduce((s,x)=>s+Number(x.amount),0);
   const monthExpense = state.expense.filter(x=>x.date.startsWith(mk)).reduce((s,x)=>s+Number(x.amount),0);
 
-  // 上月收入
-  const now = new Date();
-  const lastM = new Date(now.getFullYear(),now.getMonth()-1,1);
-  const lastMk = lastM.toISOString().slice(0,7);
+  // 上月收入（基于快照月份的上一个月）
+  const lastM = new Date(sy, sm-1-1, 1);
+  const lastMk = lastM.getFullYear()+'-'+String(lastM.getMonth()+1).padStart(2,'0');
   const lastIncome = state.income.filter(x=>x.date.startsWith(lastMk)).reduce((s,x)=>s+Number(x.amount),0);
   document.getElementById('ovLastIncome').textContent = fmtShort(lastIncome);
 
@@ -634,13 +694,16 @@ function renderOverview() {
   document.getElementById('ovBalance').textContent = fmtShort(balance);
   document.getElementById('ovBalance').className = 'val ' + (balance>=0?'green':'red');
 
-  // 本月预算
+  // 本月预算（预算目前不按月份存储，所有月份共用同一套预算设置）
   const subBudget = state.budget.sub||{};
   const total = Object.values(subBudget).reduce((s,v)=>s+(v||0),0);
   document.getElementById('ovBudget').textContent = fmtShort(total);
 
   document.getElementById('ovIncome').textContent = fmtShort(monthIncome);
   document.getElementById('ovExpense').textContent = fmtShort(monthExpense);
+
+  // 快照月份标签
+  document.getElementById('snapshotMonthPill').textContent = mk.replace('-','年')+'月';
 
   // 资产：手动基数 + 自动关联计算
   if (!state._assetManual) state._assetManual = { wxBalance:0, aliBalance:0, bankCard:0, deposit:0, finance:0, fund:0 };
@@ -721,39 +784,75 @@ function renderOverview() {
   document.getElementById('ovYearRingSaved').textContent = fmtShort(yearSaved>0?yearSaved:0);
   document.getElementById('ovYearRingLeft').textContent = fmtShort(Math.max(0,yearGoal-yearSaved));
 
-  // 月度结余概览
+  // 收入支出概览
   if (!state._balYear) state._balYear = new Date().getFullYear();
-  const balYear = state._balYear;
-  document.getElementById('balYearLabel').textContent = balYear;
+  if (!state._sumOpen) state._sumOpen = { income:false, expense:false, balance:false };
+  const sumYear = state._balYear;
+  const curYear = new Date().getFullYear();
+  const curMonth = new Date().getMonth();
+  document.getElementById('sumYearLabel').textContent = sumYear;
+  document.getElementById('sumPrevYear').disabled = (sumYear <= 2020);
+  document.getElementById('sumNextYear').disabled = (sumYear >= curYear);
+
+  // 累计全部收入/支出
+  const totalInc = state.income.reduce((s,x)=>s+Number(x.amount),0);
+  const totalExp = state.expense.reduce((s,x)=>s+Number(x.amount),0);
+  document.getElementById('totalIncome').textContent = fmtShort(totalInc);
+  document.getElementById('totalExpense').textContent = fmtShort(totalExp);
+
+  // 累计结余 = 所有月份 (上月收入 − 当月支出) 之和
+  // 收集所有出现过的年月，逐月计算
+  const allMonths = new Set();
+  state.income.forEach(x => allMonths.add(x.date.slice(0,7)));
+  state.expense.forEach(x => allMonths.add(x.date.slice(0,7)));
+  let totalBal = 0;
+  const sortedMonths = Array.from(allMonths).sort();
+  sortedMonths.forEach(ym => {
+    const [y,m] = ym.split('-').map(Number);
+    const prevMk = (m===1 ? (y-1)+'-12' : y+'-'+String(m-1).padStart(2,'0'));
+    const prevInc = state.income.filter(x=>x.date.startsWith(prevMk)).reduce((s,x)=>s+Number(x.amount),0);
+    const mExp = state.expense.filter(x=>x.date.startsWith(ym)).reduce((s,x)=>s+Number(x.amount),0);
+    totalBal += (prevInc - mExp);
+  });
+  document.getElementById('totalBalance').textContent = fmtShort(totalBal);
+
+  // 月度明细（按所选年份）
   const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-  let yearTotal = 0;
-  const monthData = [];
-  for (let m=0; m<12; m++) {
-    const mStr = String(m+1).padStart(2,'0');
-    const ym = balYear + '-' + mStr;
-    // 结余 = 上月收入 - 本月支出
-    const prevMk = (m===0 ? (balYear-1)+'-12' : balYear+'-'+String(m).padStart(2,'0'));
-    const prevIncome = state.income.filter(x=>x.date.startsWith(prevMk)).reduce((s,x)=>s+Number(x.amount),0);
-    const mExpense = state.expense.filter(x=>x.date.startsWith(ym)).reduce((s,x)=>s+Number(x.amount),0);
-    const mIncome = state.income.filter(x=>x.date.startsWith(ym)).reduce((s,x)=>s+Number(x.amount),0);
-    const bal = prevIncome - mExpense;
-    yearTotal += bal;
-    monthData.push({ name: monthNames[m], bal, income: mIncome, expense: mExpense, ym });
+  const isCurYear = sumYear === curYear;
+  function buildMonthRows(type) {
+    const rows = [];
+    for (let m=0; m<12; m++) {
+      const mStr = String(m+1).padStart(2,'0');
+      const ym = sumYear + '-' + mStr;
+      const isFuture = isCurYear && m > curMonth;
+      let val = 0;
+      if (type === 'income') {
+        val = state.income.filter(x=>x.date.startsWith(ym)).reduce((s,x)=>s+Number(x.amount),0);
+      } else if (type === 'expense') {
+        val = state.expense.filter(x=>x.date.startsWith(ym)).reduce((s,x)=>s+Number(x.amount),0);
+      } else if (type === 'balance') {
+        const prevMk = (m===0 ? (sumYear-1)+'-12' : sumYear+'-'+String(m).padStart(2,'0'));
+        const prevInc = state.income.filter(x=>x.date.startsWith(prevMk)).reduce((s,x)=>s+Number(x.amount),0);
+        const mExp = state.expense.filter(x=>x.date.startsWith(ym)).reduce((s,x)=>s+Number(x.amount),0);
+        val = prevInc - mExp;
+      }
+      if (isFuture) continue;
+      const color = type === 'income' ? 'var(--green)' : (type === 'expense' ? 'var(--red)' : (val>0?'var(--green)':(val<0?'var(--red)':'var(--label-tertiary)')));
+      rows.push(`<div class="month-row"><span class="mr-label">${monthNames[m]}</span><span class="mr-val" style="color:${color}">${fmtShort(val)}</span></div>`);
+    }
+    return rows.length ? rows.join('') : '<div class="month-row"><span class="mr-label" style="color:var(--label-tertiary)">暂无记录</span><span class="mr-val">—</span></div>';
   }
-  const isCurrentYear = balYear === new Date().getFullYear();
-  const currentMonth = new Date().getMonth();
-  document.getElementById('balMonthGrid').innerHTML = monthData.map((md, i) => {
-    const isFuture = isCurrentYear && i > currentMonth;
-    const isCurrent = isCurrentYear && i === currentMonth;
-    const balColor = md.bal > 0 ? 'var(--green)' : (md.bal < 0 ? 'var(--red)' : 'var(--label-tertiary)');
-    const bg = isCurrent ? 'background:linear-gradient(135deg,var(--blue-light),#fff)' : 'background:var(--bg-input)';
-    const border = isCurrent ? 'border:1.5px solid var(--blue)' : 'border:1px solid var(--separator)';
-    return `<div style="${bg};${border};border-radius:12px;padding:10px 6px;text-align:center">
-      <div style="font-size:11px;color:var(--label-secondary);font-weight:600;margin-bottom:4px">${md.name}</div>
-      <div style="font-size:13px;font-weight:800;font-feature-settings:'tnum';color:${isFuture?'var(--label-tertiary)':balColor}">${isFuture?'—':fmtShort(md.bal)}</div>
-    </div>`;
-  }).join('');
-  document.getElementById('balYearTotal').textContent = fmtShort(yearTotal);
+
+  const sumOpen = state._sumOpen;
+  document.getElementById('sumIncDetail').innerHTML = buildMonthRows('income');
+  document.getElementById('sumExpDetail').innerHTML = buildMonthRows('expense');
+  document.getElementById('sumBalDetail').innerHTML = buildMonthRows('balance');
+  document.getElementById('sumIncDetail').style.maxHeight = sumOpen.income ? '600px' : '0';
+  document.getElementById('sumExpDetail').style.maxHeight = sumOpen.expense ? '600px' : '0';
+  document.getElementById('sumBalDetail').style.maxHeight = sumOpen.balance ? '600px' : '0';
+  document.getElementById('sumIncArrow').textContent = sumOpen.income ? '▾' : '▸';
+  document.getElementById('sumExpArrow').textContent = sumOpen.expense ? '▾' : '▸';
+  document.getElementById('sumBalArrow').textContent = sumOpen.balance ? '▾' : '▸';
 }
 
 /* ==================== 预算页 ==================== */
@@ -1027,7 +1126,10 @@ function renderPickerGrid() {
   const year = state._pickerYear || new Date().getFullYear();
   const curYear = new Date().getFullYear();
   const curMonth = new Date().getMonth() + 1;
-  const currentMk = _pickerTarget === 'expense' ? (state._expMonth||monthKey()) : (state._incMonth||monthKey());
+  let currentMk;
+  if (_pickerTarget === 'expense') currentMk = state._expMonth || monthKey();
+  else if (_pickerTarget === 'income') currentMk = state._incMonth || monthKey();
+  else currentMk = state._snapshotMonth || monthKey();
   const [selY, selM] = currentMk.split('-').map(Number);
   
   document.getElementById('mpYearLabel').textContent = year + '年';
@@ -1050,9 +1152,12 @@ function renderPickerGrid() {
       if (_pickerTarget === 'expense') {
         state._expMonth = newMk;
         renderExpense();
-      } else {
+      } else if (_pickerTarget === 'income') {
         state._incMonth = newMk;
         renderIncome();
+      } else if (_pickerTarget === 'snapshot') {
+        state._snapshotMonth = newMk;
+        renderOverview();
       }
       closeMonthPicker();
     });
@@ -1114,8 +1219,34 @@ document.getElementById('mpNextYear').addEventListener('click', () => {
 document.getElementById('ovAssetToggle').addEventListener('click',()=>{
   state._assetOpen=!state._assetOpen;renderOverview();
 });
-document.getElementById('balPrevYear').addEventListener('click',()=>{ state._balYear=(state._balYear||new Date().getFullYear())-1; renderOverview(); });
-document.getElementById('balNextYear').addEventListener('click',()=>{ state._balYear=(state._balYear||new Date().getFullYear())+1; renderOverview(); });
+
+// 快照月份 pill 点击 → 弹出月份选择器
+document.getElementById('snapshotMonthPill').addEventListener('click', () => {
+  if (!state._pickerYear) state._pickerYear = new Date().getFullYear();
+  const mk = state._snapshotMonth || monthKey();
+  const [y] = mk.split('-').map(Number);
+  state._pickerYear = y;
+  openMonthPicker('snapshot', mk);
+});
+
+// 收入支出概览：行展开/折叠
+['Income','Expense','Balance'].forEach(name => {
+  const key = name.toLowerCase();
+  document.getElementById('summary'+name).querySelector('.summary-row-header').addEventListener('click', () => {
+    if (!state._sumOpen) state._sumOpen = { income:false, expense:false, balance:false };
+    state._sumOpen[key] = !state._sumOpen[key];
+    renderOverview();
+  });
+});
+
+// 收入支出概览：年份切换
+document.getElementById('sumPrevYear').addEventListener('click', () => {
+  if (state._balYear > 2020) { state._balYear--; renderOverview(); }
+});
+document.getElementById('sumNextYear').addEventListener('click', () => {
+  const curY = new Date().getFullYear();
+  if (state._balYear < curY) { state._balYear++; renderOverview(); }
+});
 
 /* ==================== 编辑资产 ==================== */
 document.getElementById('editAssetsBtn').addEventListener('click',()=>{
