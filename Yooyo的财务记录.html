@@ -208,6 +208,10 @@ input[type=number]{-moz-appearance:textfield;}
 .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 4px;}
 .section-head .stitle{font-size:13px;color:var(--label-secondary);font-weight:700;letter-spacing:.3px;}
 .month-pill{display:inline-flex;align-items:center;gap:4px;background:var(--bg-card-2);padding:5px 12px;border-radius:14px;font-size:13px;font-weight:700;}
+.month-nav{display:flex;align-items:center;gap:6px;}
+.month-arrow{width:30px;height:30px;border-radius:50%;border:none;background:var(--bg-card-2);color:var(--label);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding-bottom:2px;}
+.month-arrow:active{background:var(--blue-light);color:var(--blue-dark);}
+.month-arrow:disabled{opacity:0.3;cursor:default;}
 </style>
 </head>
 <body>
@@ -258,7 +262,11 @@ input[type=number]{-moz-appearance:textfield;}
 
         <div class="section-head">
           <span class="stitle">🐱 花费明细</span>
-          <span class="month-pill" id="expenseMonthPill">本月</span>
+          <div class="month-nav">
+            <button class="month-arrow" id="expPrevMonth">‹</button>
+            <span class="month-pill" id="expenseMonthPill">本月</span>
+            <button class="month-arrow" id="expNextMonth">›</button>
+          </div>
         </div>
         <div class="list-group" id="expenseList"></div>
       </section>
@@ -372,7 +380,13 @@ input[type=number]{-moz-appearance:textfield;}
       <section class="page" id="page-income">
         <div class="card"><div class="card-title">💕 收入渠道</div><div class="list-group" id="incomeChannels" style="margin-bottom:0;box-shadow:none"></div></div>
         <div class="card"><div class="card-title">🌸 收入方式</div><div class="list-group" id="incomeMethods" style="margin-bottom:0;box-shadow:none"></div></div>
-        <div class="section-head"><span class="stitle">🐱 收入明细</span><span class="month-pill" id="incomeMonthPill">本月</span></div>
+        <div class="section-head"><span class="stitle">🐱 收入明细</span>
+          <div class="month-nav">
+            <button class="month-arrow" id="incPrevMonth">‹</button>
+            <span class="month-pill" id="incomeMonthPill">本月</span>
+            <button class="month-arrow" id="incNextMonth">›</button>
+          </div>
+        </div>
         <div class="list-group" id="incomeList"></div>
       </section>
 
@@ -512,16 +526,15 @@ function render() {
 
 /* ==================== 花费页 ==================== */
 function renderExpense() {
-  const mk = monthKey();
   const today = todayStr();
 
-  // 今日花费
+  // 今日花费（始终为今天，不受月份切换影响）
   const todayExp = state.expense.filter(x=>x.date===today).reduce((s,x)=>s+Number(x.amount),0);
   const todayCount = state.expense.filter(x=>x.date===today).length;
   document.getElementById('todayExpense').textContent = fmt(todayExp);
   document.getElementById('todaySub').textContent = todayCount + ' 笔';
 
-  // 日花费柱状图（最近7天）
+  // 日花费柱状图（最近7天，始终为最近7天）
   const days = [];
   for (let i=6;i>=0;i--) {
     const d = new Date(); d.setDate(d.getDate()-i);
@@ -538,14 +551,19 @@ function renderExpense() {
     </div>`;
   }).join('');
 
-  // 支付方式统计
+  // 月份切换：明细、支付方式、平台统计使用选中的月份
+  if (!state._expMonth) state._expMonth = monthKey();
+  const mk = state._expMonth;
+  const curMk = monthKey();
+
+  // 支付方式统计（按选中月份）
   const statsEl = document.getElementById('payMethodStats');
   statsEl.innerHTML = PAY_METHODS.map(pm => {
     const items = state.expense.filter(x=>x.method===pm.key&&x.date.startsWith(mk));
     return `<div class="list-row"><div class="icon-box ${pm.cls}">${pm.icon}</div><div class="body"><div class="t1">${pm.name}</div><div class="t2">${items.length} 笔</div></div><div class="amt red">${fmt(items.reduce((s,x)=>s+Number(x.amount),0))}</div></div>`;
   }).join('');
 
-  // 平台统计
+  // 平台统计（按选中月份）
   const PLATFORM_ICONS = {'淘宝':'🎀','京东':'🐶','拼多多':'🍓','小红书':'📕','抖音':'🎵','乐一番':'🌸','挖煤姬':'⛏️','微信转账':'💕'};
   const platEl = document.getElementById('platformStats');
   platEl.innerHTML = PURCHASE_PLATFORMS.map(pl => {
@@ -553,18 +571,21 @@ function renderExpense() {
     return `<div class="list-row"><div class="icon-box" style="background:var(--bg-card-2);color:var(--label-secondary)">${PLATFORM_ICONS[pl]||'🛍️'}</div><div class="body"><div class="t1">${pl}</div><div class="t2">${items.length} 笔</div></div><div class="amt red">${fmt(items.reduce((s,x)=>s+Number(x.amount),0))}</div></div>`;
   }).join('');
 
-  // 明细
+  // 明细列表（按选中月份）
   const list = state.expense.filter(x=>x.date.startsWith(mk)).sort((a,b)=>b.date.localeCompare(a.date));
   const listEl = document.getElementById('expenseList');
   if (list.length===0) {
-    listEl.innerHTML = '<div class="empty"><div class="emoji">🐱</div><div class="txt">还没有花费记录哦～<br>点右下角🎀添加吧</div></div>';
+    listEl.innerHTML = '<div class="empty"><div class="emoji">🐱</div><div class="txt">该月还没有花费记录哦～</div></div>';
   } else {
     listEl.innerHTML = list.map(x => {
       const pm = PAY_METHODS.find(p=>p.key===x.method)||PAY_METHODS[0];
       return `<div class="list-row" data-edit-expense="${x.id}" style="cursor:pointer"><div class="icon-box ${pm.cls}">${pm.icon}</div><div class="body"><div class="t1">${escapeHtml(x.category||'支出')}${x.note?' · '+escapeHtml(x.note):''}</div><div class="t2">${pm.name}${x.platform?' · '+escapeHtml(x.platform):''} · ${x.date}</div></div><div class="amt red">-${fmt(x.amount)}</div><span class="arrow">›</span></div>`;
     }).join('');
   }
+
+  // 月份标签和按钮状态
   document.getElementById('expenseMonthPill').textContent = mk.replace('-','年')+'月';
+  document.getElementById('expNextMonth').disabled = (mk >= curMk);
 }
 
 /* ==================== 概览页 ==================== */
@@ -778,7 +799,9 @@ function renderBudget() {
 
 /* ==================== 收入页 ==================== */
 function renderIncome() {
-  const mk = monthKey();
+  if (!state._incMonth) state._incMonth = monthKey();
+  const mk = state._incMonth;
+  const curMk = monthKey();
 
   const channelsEl = document.getElementById('incomeChannels');
   channelsEl.innerHTML = INCOME_CHANNELS.map(ch => {
@@ -795,7 +818,7 @@ function renderIncome() {
   const list = state.income.filter(x=>x.date.startsWith(mk)).sort((a,b)=>b.date.localeCompare(a.date));
   const listEl = document.getElementById('incomeList');
   if (list.length===0) {
-    listEl.innerHTML = '<div class="empty"><div class="emoji">🐱</div><div class="txt">还没有收入记录哦～<br>点右下角🎀添加吧</div></div>';
+    listEl.innerHTML = '<div class="empty"><div class="emoji">🐱</div><div class="txt">该月还没有收入记录哦～</div></div>';
   } else {
     listEl.innerHTML = list.map(x => {
       const ch = ALL_INCOME_TYPES.find(c=>c.key===x.channel)||ALL_INCOME_TYPES[0];
@@ -803,6 +826,7 @@ function renderIncome() {
     }).join('');
   }
   document.getElementById('incomeMonthPill').textContent = mk.replace('-','年')+'月';
+  document.getElementById('incNextMonth').disabled = (mk >= curMk);
 }
 
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -949,6 +973,29 @@ function toggleCollapse(toggleId, bodyId, arrowId, flagKey) {
 }
 document.getElementById('pmToggle').addEventListener('click',()=>toggleCollapse('pmToggle','pmBody','pmArrow','_pmOpen'));
 document.getElementById('platToggle').addEventListener('click',()=>toggleCollapse('platToggle','platBody','platArrow','_platOpen'));
+
+/* ==================== 月份切换 ==================== */
+function shiftMonth(mk, delta) {
+  const [y, m] = mk.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return d.toISOString().slice(0, 7);
+}
+document.getElementById('expPrevMonth').addEventListener('click', () => {
+  state._expMonth = shiftMonth(state._expMonth || monthKey(), -1);
+  renderExpense();
+});
+document.getElementById('expNextMonth').addEventListener('click', () => {
+  const next = shiftMonth(state._expMonth || monthKey(), 1);
+  if (next <= monthKey()) { state._expMonth = next; renderExpense(); }
+});
+document.getElementById('incPrevMonth').addEventListener('click', () => {
+  state._incMonth = shiftMonth(state._incMonth || monthKey(), -1);
+  renderIncome();
+});
+document.getElementById('incNextMonth').addEventListener('click', () => {
+  const next = shiftMonth(state._incMonth || monthKey(), 1);
+  if (next <= monthKey()) { state._incMonth = next; renderIncome(); }
+});
 document.getElementById('ovAssetToggle').addEventListener('click',()=>{
   state._assetOpen=!state._assetOpen;renderOverview();
 });
