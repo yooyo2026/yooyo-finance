@@ -251,6 +251,18 @@ input[type=number]{-moz-appearance:textfield;}
 .summary-year-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .summary-year-bar button{background:var(--bg-card-2);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--label);}
 .summary-year-bar .yr-label{font-size:18px;font-weight:800;color:var(--blue-dark);}
+
+/* 花费明细筛选 */
+.filter-card{padding:12px 14px;}
+.filter-date-row{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.filter-date-row label{font-size:13px;font-weight:600;color:var(--label-secondary);flex-shrink:0;}
+.filter-date-row input[type="date"]{flex:1;padding:7px 8px;border:1px solid var(--separator);border-radius:10px;background:var(--bg-input);font-size:13px;color:var(--label);min-width:105px;-webkit-appearance:none;appearance:none;}
+.filter-sep{font-size:12px;color:var(--label-tertiary);flex-shrink:0;}
+#filterResetBtn{padding:7px 12px;border-radius:10px;border:1px solid var(--separator);background:var(--bg-card-2);color:var(--blue-dark);font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;-webkit-appearance:none;appearance:none;}
+.filter-cat-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;}
+.filter-cat-row label{font-size:13px;font-weight:600;color:var(--label-secondary);flex-shrink:0;padding-top:8px;}
+.filter-cat-row .chip-row{flex:1;}
+.filter-result{font-size:12px;color:var(--label-secondary);font-weight:600;text-align:right;padding-top:8px;border-top:0.5px solid var(--separator);font-feature-settings:'tnum';}
 </style>
 </head>
 <body>
@@ -297,14 +309,23 @@ input[type=number]{-moz-appearance:textfield;}
           </div>
         </div>
 
-        <div class="section-head">
-          <span class="stitle">🐱 花费明细</span>
-          <div class="month-nav">
-            <button class="month-arrow" id="expPrevMonth">‹</button>
-            <span class="month-pill" id="expenseMonthPill">本月</span>
-            <button class="month-arrow" id="expNextMonth">›</button>
+        <div class="section-head"><span class="stitle">🐱 花费明细</span></div>
+
+        <div class="card filter-card">
+          <div class="filter-date-row">
+            <label>📅 日期</label>
+            <input type="date" id="filterStartDate">
+            <span class="filter-sep">至</span>
+            <input type="date" id="filterEndDate">
+            <button id="filterResetBtn">重置</button>
           </div>
+          <div class="filter-cat-row">
+            <label>📊 类别</label>
+            <div class="chip-row" id="filterCatChips"></div>
+          </div>
+          <div class="filter-result" id="filterResult">共 0 笔 · ¥0</div>
         </div>
+
         <div class="list-group" id="expenseList"></div>
       </section>
 
@@ -665,13 +686,12 @@ function renderExpense() {
   const monthExp = state.expense.filter(x=>x.date.startsWith(monthKey())).reduce((s,x)=>s+Number(x.amount),0);
   document.getElementById('monthExpTotal').textContent = fmt(monthExp);
 
-  // 月份切换：明细、类别统计使用选中的月份
-  if (!state._expMonth) state._expMonth = monthKey();
-  const mk = state._expMonth;
-  const curMk = monthKey();
+  // 明细筛选：日期起止 + 支出大类（可多选，空=全部）
+  if (!state._expFilter) state._expFilter = { start:'', end:'', groups:[] };
+  const f = state._expFilter;
 
-  // 支出类别统计（按选中月份，排除亲密付）
-  const monthExpenses = state.expense.filter(x=>x.date.startsWith(mk));
+  // 支出类别统计（始终为当前月，不受筛选影响）
+  const monthExpenses = state.expense.filter(x=>x.date.startsWith(monthKey()));
   const catStatsEl = document.getElementById('catStatsContent');
   if (!state._catStatsOpen) state._catStatsOpen = {};
   catStatsEl.innerHTML = BUDGET_GROUPS.map(g => {
@@ -708,11 +728,20 @@ function renderExpense() {
     });
   });
 
-  // 明细列表（按选中月份）
-  const list = state.expense.filter(x=>x.date.startsWith(mk)).sort((a,b)=>b.date.localeCompare(a.date));
+  // 明细列表（应用筛选）
+  let list = state.expense.slice();
+  if (f.start) list = list.filter(x=>x.date >= f.start);
+  if (f.end) list = list.filter(x=>x.date <= f.end);
+  if (f.groups && f.groups.length) {
+    list = list.filter(x => {
+      const g = BUDGET_GROUPS.find(g=>g.cats.includes(x.category));
+      return g && f.groups.includes(g.key);
+    });
+  }
+  list.sort((a,b)=>b.date.localeCompare(a.date));
   const listEl = document.getElementById('expenseList');
   if (list.length===0) {
-    listEl.innerHTML = '<div class="empty"><div class="emoji">🐱</div><div class="txt">该月还没有花费记录哦～</div></div>';
+    listEl.innerHTML = '<div class="empty"><div class="emoji">🐱</div><div class="txt">没有符合筛选条件的记录哦～</div></div>';
   } else {
     listEl.innerHTML = list.map(x => {
       const pm = PAY_METHODS.find(p=>p.key===x.method)||PAY_METHODS[0];
@@ -720,9 +749,22 @@ function renderExpense() {
     }).join('');
   }
 
-  // 月份标签和按钮状态
-  document.getElementById('expenseMonthPill').textContent = mk.replace('-','年')+'月';
-  document.getElementById('expNextMonth').disabled = (mk >= curMk);
+  // 筛选控件状态同步 + 结果汇总
+  const startInput = document.getElementById('filterStartDate');
+  const endInput = document.getElementById('filterEndDate');
+  if (startInput.value !== f.start) startInput.value = f.start;
+  if (endInput.value !== f.end) endInput.value = f.end;
+  const catChipsEl = document.getElementById('filterCatChips');
+  if (!catChipsEl.dataset.bound) {
+    catChipsEl.innerHTML = BUDGET_GROUPS.map(g=>`<div class="chip" data-group="${g.key}">${g.label}</div>`).join('');
+    catChipsEl.dataset.bound = '1';
+  }
+  catChipsEl.querySelectorAll('.chip').forEach(ch=>{
+    const on = f.groups && f.groups.includes(ch.dataset.group);
+    ch.classList.toggle('active', on);
+  });
+  const listTotal = list.reduce((s,x)=>s+Number(x.amount),0);
+  document.getElementById('filterResult').textContent = `共 ${list.length} 笔 · ${fmt(listTotal)}`;
 }
 
 /* ==================== 概览页 ==================== */
@@ -1154,6 +1196,33 @@ function toggleCollapse(toggleId, bodyId, arrowId, flagKey) {
 }
 document.getElementById('catStatsToggle').addEventListener('click',()=>toggleCollapse('catStatsToggle','catStatsBody','catStatsArrow','_catStatsBodyOpen'));
 
+/* ==================== 花费明细筛选 ==================== */
+document.getElementById('filterStartDate').addEventListener('change', (e) => {
+  if (!state._expFilter) state._expFilter = { start:'', end:'', groups:[] };
+  state._expFilter.start = e.target.value;
+  renderExpense();
+});
+document.getElementById('filterEndDate').addEventListener('change', (e) => {
+  if (!state._expFilter) state._expFilter = { start:'', end:'', groups:[] };
+  state._expFilter.end = e.target.value;
+  renderExpense();
+});
+document.getElementById('filterCatChips').addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  if (!state._expFilter) state._expFilter = { start:'', end:'', groups:[] };
+  if (!state._expFilter.groups) state._expFilter.groups = [];
+  const gk = chip.dataset.group;
+  const idx = state._expFilter.groups.indexOf(gk);
+  if (idx >= 0) state._expFilter.groups.splice(idx, 1);
+  else state._expFilter.groups.push(gk);
+  renderExpense();
+});
+document.getElementById('filterResetBtn').addEventListener('click', () => {
+  state._expFilter = { start:'', end:'', groups:[] };
+  renderExpense();
+});
+
 /* ==================== 月份切换 ==================== */
 function shiftMonth(mk, delta) {
   const [y, m] = mk.split('-').map(Number);
@@ -1180,8 +1249,7 @@ function renderPickerGrid() {
   const curYear = new Date().getFullYear();
   const curMonth = new Date().getMonth() + 1;
   let currentMk;
-  if (_pickerTarget === 'expense') currentMk = state._expMonth || monthKey();
-  else if (_pickerTarget === 'income') currentMk = state._incMonth || monthKey();
+  if (_pickerTarget === 'income') currentMk = state._incMonth || monthKey();
   else currentMk = state._snapshotMonth || monthKey();
   const [selY, selM] = currentMk.split('-').map(Number);
   
@@ -1202,10 +1270,7 @@ function renderPickerGrid() {
     el.addEventListener('click', () => {
       const m = parseInt(el.dataset.m);
       const newMk = `${year}-${String(m).padStart(2,'0')}`;
-      if (_pickerTarget === 'expense') {
-        state._expMonth = newMk;
-        renderExpense();
-      } else if (_pickerTarget === 'income') {
+      if (_pickerTarget === 'income') {
         state._incMonth = newMk;
         renderIncome();
       } else if (_pickerTarget === 'snapshot') {
@@ -1222,15 +1287,7 @@ function closeMonthPicker() {
   _pickerTarget = null;
 }
 
-// 左右箭头快速切换
-document.getElementById('expPrevMonth').addEventListener('click', () => {
-  state._expMonth = shiftMonth(state._expMonth || monthKey(), -1);
-  renderExpense();
-});
-document.getElementById('expNextMonth').addEventListener('click', () => {
-  const next = shiftMonth(state._expMonth || monthKey(), 1);
-  if (next <= monthKey()) { state._expMonth = next; renderExpense(); }
-});
+// 左右箭头快速切换（仅收入页）
 document.getElementById('incPrevMonth').addEventListener('click', () => {
   state._incMonth = shiftMonth(state._incMonth || monthKey(), -1);
   renderIncome();
@@ -1240,14 +1297,7 @@ document.getElementById('incNextMonth').addEventListener('click', () => {
   if (next <= monthKey()) { state._incMonth = next; renderIncome(); }
 });
 
-// 点击月份标签弹出选择器
-document.getElementById('expenseMonthPill').addEventListener('click', () => {
-  if (!state._pickerYear) state._pickerYear = new Date().getFullYear();
-  const mk = state._expMonth || monthKey();
-  const [y] = mk.split('-').map(Number);
-  state._pickerYear = y;
-  openMonthPicker('expense', mk);
-});
+// 点击月份标签弹出选择器（仅收入页）
 document.getElementById('incomeMonthPill').addEventListener('click', () => {
   if (!state._pickerYear) state._pickerYear = new Date().getFullYear();
   const mk = state._incMonth || monthKey();
