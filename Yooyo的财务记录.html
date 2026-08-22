@@ -275,27 +275,25 @@ input[type=number]{-moz-appearance:textfield;}
         </div>
 
         <div class="card">
-          <div class="card-title">🍓 日花费柱状图</div>
-          <div class="bar-chart" id="barChart"></div>
-        </div>
-
-        <div class="card">
-          <div class="collapse-header" id="pmToggle">
-            <span class="card-title" style="margin-bottom:0">🎀 支付方式分布</span>
-            <span class="ch-arrow" id="pmArrow">▸</span>
-          </div>
-          <div class="collapse-body" id="pmBody" style="max-height:0">
-            <div class="list-group" id="payMethodStats" style="margin-bottom:0;box-shadow:none"></div>
+          <div class="stat-grid" style="margin-bottom:0">
+            <div class="stat-cell c-expense">
+              <div class="lbl">📅 本周花费</div>
+              <div class="val red" id="weekExpense">¥0</div>
+            </div>
+            <div class="stat-cell c-budget">
+              <div class="lbl">📊 本月花费</div>
+              <div class="val blue" id="monthExpTotal">¥0</div>
+            </div>
           </div>
         </div>
 
         <div class="card">
-          <div class="collapse-header" id="platToggle">
-            <span class="card-title" style="margin-bottom:0">🍓 购买平台</span>
-            <span class="ch-arrow" id="platArrow">▸</span>
+          <div class="collapse-header" id="catStatsToggle">
+            <span class="card-title" style="margin-bottom:0">📊 支出类别统计</span>
+            <span class="ch-arrow" id="catStatsArrow">▸</span>
           </div>
-          <div class="collapse-body" id="platBody" style="max-height:0">
-            <div class="list-group" id="platformStats" style="margin-bottom:0;box-shadow:none"></div>
+          <div class="collapse-body" id="catStatsBody" style="max-height:0">
+            <div id="catStatsContent"></div>
           </div>
         </div>
 
@@ -328,7 +326,7 @@ input[type=number]{-moz-appearance:textfield;}
 
         <div class="card" id="intimateCard">
           <div class="collapse-header" id="ovIntimateToggle">
-            <span class="card-title">💞 亲密付</span>
+            <span class="card-title">💞 本月亲密付余额</span>
             <span style="display:flex;align-items:center;gap:6px">
               <span id="ovIntimateTotal" style="font-size:16px;font-weight:800;font-feature-settings:'tnum'">¥4,500</span>
               <span class="ch-arrow" id="ovIntimateArrow">▸</span>
@@ -371,12 +369,6 @@ input[type=number]{-moz-appearance:textfield;}
               <div class="val pink" id="ovIntimateExp">¥0</div>
             </div>
           </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">🚨 本月支出预警</div>
-          <div class="warn-bar"><div class="fill" id="ovWarnFill" style="width:0%"></div><div class="threshold" id="ovWarnThresh" style="left:0%"></div></div>
-          <div class="warn-legend"><span id="ovWarnUsed">已用 ¥0</span><span id="ovWarnLimit">预警线 ¥0</span></div>
         </div>
 
         <div class="card" id="summaryCard">
@@ -537,9 +529,11 @@ const DEFAULT_DATA = {
   _assetManual: { wxBalance:0, aliBalance:0, bankCard:0, deposit:0, finance:0, fund:0, intimatePay:4500 },
   budget: { warnPercent:80, savingGoal:0, yearSavingGoal:0,
     sub: {
-      '文具':0,'玩具':0,'衣物':0,'餐饮':0,'人情':0,'健康':0,'个人其他':0,
+      '文具':0,'玩具':0,'衣物':0,'餐饮':0,'人情':0,'健康':0,'个人消耗':0,'个人其他':0,
       '布料':0,'辅料':0,'快递':0,'工具':0,'海运':0,'工作其他':0,
-      '家庭':0,'家庭其他':0,'教育':0,'教育其他':0,'其他支出':0
+      '日常消耗':0,'饮食':0,'保险':0,
+      '英语课':0,'书籍':0,'其他':0,
+      '其他支出':0
     }
   }
 };
@@ -557,7 +551,8 @@ const INCOME_METHODS = [
   { key:'gift', name:'赠予', icon:'🎁', cls:'ch-gift' },
   { key:'family_card', name:'亲情卡', icon:'🌸', cls:'ch-family-card' },
   { key:'rent', name:'房租', icon:'🏠', cls:'ch-rent' },
-  { key:'idle', name:'闲置', icon:'♻️', cls:'ch-rent' }
+  { key:'idle', name:'闲置', icon:'♻️', cls:'ch-rent' },
+  { key:'refund', name:'退款', icon:'💰', cls:'ch-rent' }
 ];
 const ALL_INCOME_TYPES = [...INCOME_CHANNELS, ...INCOME_METHODS];
 
@@ -570,12 +565,12 @@ const PAY_METHODS = [
   { key:'huabei', name:'花呗', icon:'🌺', cls:'ch-douyin', asset:null }
 ];
 const PURCHASE_PLATFORMS = ['淘宝','京东','拼多多','小红书','抖音','乐一番','挖煤姬','微信转账'];
-const EXPENSE_CATEGORIES = ['文具','玩具','衣物','餐饮','人情','健康','个人其他','布料','辅料','快递','工具','海运','工作其他','家庭','家庭其他','教育','教育其他','其他支出'];
+const EXPENSE_CATEGORIES = ['文具','玩具','衣物','餐饮','人情','健康','个人消耗','个人其他','布料','辅料','快递','工具','海运','工作其他','日常消耗','饮食','保险','英语课','书籍','其他','其他支出'];
 const BUDGET_GROUPS = [
-  { key:'personal', label:'👤 个人', cats:['文具','玩具','衣物','餐饮','人情','健康','个人其他'], color:'var(--blue)' },
+  { key:'personal', label:'👤 个人', cats:['文具','玩具','衣物','餐饮','人情','健康','个人消耗','个人其他'], color:'var(--blue)' },
   { key:'work', label:'💼 工作', cats:['布料','辅料','快递','工具','海运','工作其他'], color:'var(--orange)' },
-  { key:'family', label:'🏠 家庭', cats:['家庭','家庭其他'], color:'var(--purple)' },
-  { key:'education', label:'📚 教育', cats:['教育','教育其他'], color:'var(--teal)' },
+  { key:'family', label:'🏠 家庭', cats:['日常消耗','饮食','保险'], color:'var(--purple)' },
+  { key:'education', label:'📚 教育', cats:['英语课','玩具','书籍','其他'], color:'var(--teal)' },
   { key:'other', label:'📦 其他', cats:['其他支出'], color:'var(--label-tertiary)' }
 ];
 
@@ -651,42 +646,67 @@ function renderExpense() {
   document.getElementById('todayExpense').textContent = fmt(todayExp);
   document.getElementById('todaySub').textContent = todayCount + ' 笔';
 
-  // 日花费柱状图（最近7天，始终为最近7天）
-  const days = [];
-  for (let i=6;i>=0;i--) {
-    const d = new Date(); d.setDate(d.getDate()-i);
-    days.push({ label: d.toISOString().slice(5,10), date: d.toISOString().slice(0,10), dow: ['日','一','二','三','四','五','六'][d.getDay()] });
-  }
-  const dailySums = days.map(d => state.expense.filter(x=>x.date===d.date).reduce((s,x)=>s+Number(x.amount),0));
-  const maxVal = Math.max(1, ...dailySums);
-  document.getElementById('barChart').innerHTML = days.map((d,i) => {
-    const h = Math.max(2, dailySums[i]/maxVal*100);
-    return `<div class="bar-col">
-      <div class="bar-amt">${dailySums[i]>0?fmtShort(dailySums[i]):''}</div>
-      <div class="bar-wrap"><div class="bar-fill" style="height:${h}%"></div></div>
-      <div class="bar-lbl">${d.dow}</div>
-    </div>`;
-  }).join('');
+  // 本周花费（周一到周日，始终为当前自然周）
+  const now = new Date();
+  const dayOfWeek = now.getDay() || 7;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - dayOfWeek + 1);
+  monday.setHours(0,0,0,0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23,59,59,999);
+  const weekExp = state.expense.filter(x => {
+    const d = new Date(x.date + 'T00:00:00');
+    return d >= monday && d <= sunday;
+  }).reduce((s,x)=>s+Number(x.amount),0);
+  document.getElementById('weekExpense').textContent = fmt(weekExp);
 
-  // 月份切换：明细、支付方式、平台统计使用选中的月份
+  // 本月花费（始终为当前月）
+  const monthExp = state.expense.filter(x=>x.date.startsWith(monthKey())).reduce((s,x)=>s+Number(x.amount),0);
+  document.getElementById('monthExpTotal').textContent = fmt(monthExp);
+
+  // 月份切换：明细、类别统计使用选中的月份
   if (!state._expMonth) state._expMonth = monthKey();
   const mk = state._expMonth;
   const curMk = monthKey();
 
-  // 支付方式统计（按选中月份）
-  const statsEl = document.getElementById('payMethodStats');
-  statsEl.innerHTML = PAY_METHODS.map(pm => {
-    const items = state.expense.filter(x=>x.method===pm.key&&x.date.startsWith(mk));
-    return `<div class="list-row"><div class="icon-box ${pm.cls}">${pm.icon}</div><div class="body"><div class="t1">${pm.name}</div><div class="t2">${items.length} 笔</div></div><div class="amt red">${fmt(items.reduce((s,x)=>s+Number(x.amount),0))}</div></div>`;
+  // 支出类别统计（按选中月份，排除亲密付）
+  const monthExpenses = state.expense.filter(x=>x.date.startsWith(mk));
+  const catStatsEl = document.getElementById('catStatsContent');
+  if (!state._catStatsOpen) state._catStatsOpen = {};
+  catStatsEl.innerHTML = BUDGET_GROUPS.map(g => {
+    const groupItems = monthExpenses.filter(x => g.cats.includes(x.category));
+    const groupTotal = groupItems.reduce((s,x)=>s+Number(x.amount),0);
+    const isExpanded = state._catStatsOpen[g.key];
+    const subRows = g.cats.map(cat => {
+      const catItems = monthExpenses.filter(x=>x.category===cat);
+      const catTotal = catItems.reduce((s,x)=>s+Number(x.amount),0);
+      if (catTotal === 0 && catItems.length === 0) return '';
+      return `<div class="list-row" style="padding-left:20px"><div class="icon-box" style="background:transparent;width:8px;height:8px;border-radius:50%;background:${g.color};min-width:8px"></div><div class="body"><div class="t1" style="font-size:13px">${cat}</div><div class="t2">${catItems.length} 笔</div></div><div class="amt red" style="font-size:14px">${fmt(catTotal)}</div></div>`;
+    }).join('');
+    return `<div style="margin-bottom:6px">
+      <div class="budget-group-header" data-cat-group="${g.key}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="collapse-arrow" style="display:inline-block;transition:transform .2s;font-size:11px;color:var(--label-tertiary);width:14px;text-align:center">${isExpanded?'▾':'▸'}</span>
+          <span style="width:6px;height:6px;border-radius:50%;background:${g.color};display:inline-block"></span>
+          <span style="font-size:14px;font-weight:600">${g.label}</span>
+        </div>
+        <span style="font-size:14px;font-weight:700;font-feature-settings:'tnum';color:${groupTotal>0?'var(--red)':'var(--label-tertiary)'}">${fmt(groupTotal)}</span>
+      </div>
+      <div class="cat-group-body" data-cat-group="${g.key}" style="overflow:hidden;transition:max-height .25s ease;${isExpanded?'max-height:600px':'max-height:0'}">${subRows||'<div style="padding:8px 20px;font-size:12px;color:var(--label-tertiary)">暂无记录</div>'}</div>
+    </div>`;
   }).join('');
-
-  // 平台统计（按选中月份）
-  const PLATFORM_ICONS = {'淘宝':'🎀','京东':'🐶','拼多多':'🍓','小红书':'📕','抖音':'🎵','乐一番':'🌸','挖煤姬':'⛏️','微信转账':'💕'};
-  const platEl = document.getElementById('platformStats');
-  platEl.innerHTML = PURCHASE_PLATFORMS.map(pl => {
-    const items = state.expense.filter(x=>x.platform===pl&&x.date.startsWith(mk));
-    return `<div class="list-row"><div class="icon-box" style="background:var(--bg-card-2);color:var(--label-secondary)">${PLATFORM_ICONS[pl]||'🛍️'}</div><div class="body"><div class="t1">${pl}</div><div class="t2">${items.length} 笔</div></div><div class="amt red">${fmt(items.reduce((s,x)=>s+Number(x.amount),0))}</div></div>`;
-  }).join('');
+  // 绑定大类点击展开
+  catStatsEl.querySelectorAll('.budget-group-header').forEach(hdr => {
+    hdr.addEventListener('click', () => {
+      const gk = hdr.dataset.catGroup;
+      state._catStatsOpen[gk] = !state._catStatsOpen[gk];
+      const body = catStatsEl.querySelector('.cat-group-body[data-cat-group="'+gk+'"]');
+      const arrow = hdr.querySelector('.collapse-arrow');
+      body.style.maxHeight = state._catStatsOpen[gk] ? '600px' : '0';
+      arrow.textContent = state._catStatsOpen[gk] ? '▾' : '▸';
+    });
+  });
 
   // 明细列表（按选中月份）
   const list = state.expense.filter(x=>x.date.startsWith(mk)).sort((a,b)=>b.date.localeCompare(a.date));
@@ -696,7 +716,7 @@ function renderExpense() {
   } else {
     listEl.innerHTML = list.map(x => {
       const pm = PAY_METHODS.find(p=>p.key===x.method)||PAY_METHODS[0];
-      return `<div class="list-row" data-edit-expense="${x.id}" style="cursor:pointer"><div class="icon-box ${pm.cls}">${pm.icon}</div><div class="body"><div class="t1">${escapeHtml(x.category||'支出')}${x.note?' · '+escapeHtml(x.note):''}</div><div class="t2">${pm.name}${x.platform?' · '+escapeHtml(x.platform):''} · ${x.date}</div></div><div class="amt red">-${fmt(x.amount)}</div><span class="arrow">›</span></div>`;
+      return `<div class="list-row" data-edit-expense="${x.id}" style="cursor:pointer"><div class="icon-box ${pm.cls}">${pm.icon}</div><div class="body"><div class="t1">${escapeHtml(x.category||'支出')}${x.note?' · '+escapeHtml(x.note):''}</div><div class="t2">${pm.name} · ${x.date}</div></div><div class="amt red">-${fmt(x.amount)}</div><span class="arrow">›</span></div>`;
     }).join('');
   }
 
@@ -794,17 +814,6 @@ function renderOverview() {
   if (!state._intimateOpen) state._intimateOpen = false;
   document.getElementById('ovIntimateBody').style.maxHeight = state._intimateOpen?'200px':'0';
   document.getElementById('ovIntimateArrow').textContent = state._intimateOpen?'▾':'▸';
-
-  // 预警线
-  const warnPct = state.budget.warnPercent||80;
-  const warnLimit = total*warnPct/100;
-  const usedPct = total>0?Math.min(100,monthExpense/total*100):0;
-  const fill = document.getElementById('ovWarnFill');
-  fill.style.width = usedPct+'%';
-  fill.style.background = monthExpense>=warnLimit&&warnLimit>0?'var(--red)':(monthExpense>=total*0.6&&total>0?'var(--orange)':'var(--green)');
-  document.getElementById('ovWarnThresh').style.left = (total>0?warnPct:0)+'%';
-  document.getElementById('ovWarnUsed').textContent = '已用 '+fmtShort(monthExpense);
-  document.getElementById('ovWarnLimit').textContent = '预警线 '+fmtShort(warnLimit);
 
   // 储蓄目标
   const goal = state.budget.savingGoal||0;
@@ -1089,7 +1098,6 @@ function openSheet(type, editId) {
     sheetTitle.textContent = isEdit ? '编辑花费' : '新增花费';
     const curPm = isEdit ? editRec.method : PAY_METHODS[0].key;
     const curCat = isEdit ? (editRec.category || EXPENSE_CATEGORIES[0]) : EXPENSE_CATEGORIES[0];
-    const curPlat = isEdit ? (editRec.platform || PURCHASE_PLATFORMS[0]) : PURCHASE_PLATFORMS[0];
     const curAmt = isEdit ? editRec.amount : '';
     const curNote = isEdit ? (editRec.note||'') : '';
     const curDate = isEdit ? editRec.date : todayStr();
@@ -1098,21 +1106,20 @@ function openSheet(type, editId) {
       <div class="field"><label>支付方式</label><div class="chip-row" id="pmChips">${PAY_METHODS.map(p=>`<div class="chip ${p.key===curPm?'active':''}" data-val="${p.key}">${p.icon} ${p.name}</div>`).join('')}</div></div>
       <div class="field"><label>支出类别</label>
         <div class="cat-groups">
-          <div class="cat-group-label">👤 个人</div><div class="chip-row">${['文具','玩具','衣物','餐饮','人情','健康','个人其他'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
+          <div class="cat-group-label">👤 个人</div><div class="chip-row">${['文具','玩具','衣物','餐饮','人情','健康','个人消耗','个人其他'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
           <div class="cat-group-label">💼 工作</div><div class="chip-row">${['布料','辅料','快递','工具','海运','工作其他'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
-          <div class="cat-group-label">🏠 家庭</div><div class="chip-row">${['家庭','家庭其他'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
-          <div class="cat-group-label">📚 教育</div><div class="chip-row">${['教育','教育其他'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
+          <div class="cat-group-label">🏠 家庭</div><div class="chip-row">${['日常消耗','饮食','保险'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
+          <div class="cat-group-label">📚 教育</div><div class="chip-row">${['英语课','玩具','书籍','其他'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
           <div class="cat-group-label">📦 其他</div><div class="chip-row">${['其他支出'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
         </div>
       </div>
-      <div class="field"><label>购买平台</label><div class="chip-row" id="platChips">${PURCHASE_PLATFORMS.map(p=>`<div class="chip ${p===curPlat?'active':''}" data-val="${p}">${p}</div>`).join('')}</div></div>
       <div class="field"><label>金额</label><input type="number" id="fAmount" placeholder="0.00" step="0.01" value="${curAmt}" autofocus></div>
       <div class="field"><label>备注</label><input type="text" id="fNote" placeholder="如：马克笔/水溶蕾丝/顺丰快递" value="${escapeHtml(curNote)}"></div>
       <div class="field"><label>日期</label><input type="date" id="fDate" value="${curDate}"></div>
       <button class="btn-primary" id="submitBtn">${isEdit?'保存修改':'添加花费'}</button>
       ${isEdit?'<button class="btn-secondary" id="delFromSheetBtn" style="color:var(--red)">删除此记录</button>':''}
     `;
-    let selPm=curPm,selCat=curCat,selPlat=curPlat;
+    let selPm=curPm,selCat=curCat;
     sheetBody.querySelectorAll('#pmChips .chip').forEach(ch=>ch.addEventListener('click',()=>{
       sheetBody.querySelectorAll('#pmChips .chip').forEach(x=>x.classList.remove('active'));
       ch.classList.add('active');selPm=ch.dataset.val;
@@ -1121,14 +1128,10 @@ function openSheet(type, editId) {
       sheetBody.querySelectorAll('.cat-groups .chip').forEach(x=>x.classList.remove('active'));
       ch.classList.add('active');selCat=ch.dataset.val;
     }));
-    sheetBody.querySelectorAll('#platChips .chip').forEach(ch=>ch.addEventListener('click',()=>{
-      sheetBody.querySelectorAll('#platChips .chip').forEach(x=>x.classList.remove('active'));
-      ch.classList.add('active');selPlat=ch.dataset.val;
-    }));
     sheetBody.querySelector('#submitBtn').addEventListener('click',()=>{
       const amt=parseFloat(sheetBody.querySelector('#fAmount').value);
       if(!amt||amt<=0){toast('请输入有效金额');return;}
-      const data={method:selPm,platform:selPlat,category:selCat,amount:amt,note:sheetBody.querySelector('#fNote').value.trim(),date:sheetBody.querySelector('#fDate').value};
+      const data={method:selPm,category:selCat,amount:amt,note:sheetBody.querySelector('#fNote').value.trim(),date:sheetBody.querySelector('#fDate').value};
       if(isEdit){ Object.assign(editRec,data); } else { state.expense.push({id:uid(),...data}); }
       save();render();closeSheet();toast(isEdit?'已修改':'已添加花费');
     });
@@ -1144,15 +1147,12 @@ function openSheet(type, editId) {
 function closeSheet(){sheetMask.classList.remove('show');sheet.classList.remove('show');}
 
 /* ==================== 花费页折叠 ==================== */
-if (!state._pmOpen) state._pmOpen = false;
-if (!state._platOpen) state._platOpen = false;
 function toggleCollapse(toggleId, bodyId, arrowId, flagKey) {
   state[flagKey] = !state[flagKey];
   document.getElementById(bodyId).style.maxHeight = state[flagKey]?'600px':'0';
   document.getElementById(arrowId).textContent = state[flagKey]?'▾':'▸';
 }
-document.getElementById('pmToggle').addEventListener('click',()=>toggleCollapse('pmToggle','pmBody','pmArrow','_pmOpen'));
-document.getElementById('platToggle').addEventListener('click',()=>toggleCollapse('platToggle','platBody','platArrow','_platOpen'));
+document.getElementById('catStatsToggle').addEventListener('click',()=>toggleCollapse('catStatsToggle','catStatsBody','catStatsArrow','_catStatsBodyOpen'));
 
 /* ==================== 月份切换 ==================== */
 function shiftMonth(mk, delta) {
@@ -1389,8 +1389,6 @@ document.getElementById('importFileInput').addEventListener('change', (e) => {
         if (data._assetManual) state._assetManual = data._assetManual;
         if (data.budget) state.budget = data.budget;
         state._collapse = {};
-        state._pmOpen = false;
-        state._platOpen = false;
         state._assetOpen = false;
         save();
         render();
