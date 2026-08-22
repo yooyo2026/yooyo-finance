@@ -262,6 +262,8 @@ input[type=number]{-moz-appearance:textfield;}
 .filter-cat-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;}
 .filter-cat-row label{font-size:13px;font-weight:600;color:var(--label-secondary);flex-shrink:0;padding-top:8px;}
 .filter-cat-row .chip-row{flex:1;}
+.filter-cat-group-label{width:100%;font-size:11px;color:var(--label-tertiary);font-weight:600;margin:6px 0 2px;}
+.filter-cat-row .chip{padding:6px 12px;font-size:12px;}
 .filter-result{font-size:12px;color:var(--label-secondary);font-weight:600;text-align:right;padding-top:8px;border-top:0.5px solid var(--separator);font-feature-settings:'tnum';}
 </style>
 </head>
@@ -687,7 +689,7 @@ function renderExpense() {
   document.getElementById('monthExpTotal').textContent = fmt(monthExp);
 
   // 明细筛选：日期起止 + 支出大类（可多选，空=全部）
-  if (!state._expFilter) state._expFilter = { start:'', end:'', groups:[] };
+  if (!state._expFilter) state._expFilter = { start:'', end:'', cats:[] };
   const f = state._expFilter;
 
   // 支出类别统计（始终为当前月，不受筛选影响）
@@ -732,11 +734,8 @@ function renderExpense() {
   let list = state.expense.slice();
   if (f.start) list = list.filter(x=>x.date >= f.start);
   if (f.end) list = list.filter(x=>x.date <= f.end);
-  if (f.groups && f.groups.length) {
-    list = list.filter(x => {
-      const g = BUDGET_GROUPS.find(g=>g.cats.includes(x.category));
-      return g && f.groups.includes(g.key);
-    });
+  if (f.cats && f.cats.length) {
+    list = list.filter(x => f.cats.includes(x.category));
   }
   list.sort((a,b)=>b.date.localeCompare(a.date));
   const listEl = document.getElementById('expenseList');
@@ -756,11 +755,14 @@ function renderExpense() {
   if (endInput.value !== f.end) endInput.value = f.end;
   const catChipsEl = document.getElementById('filterCatChips');
   if (!catChipsEl.dataset.bound) {
-    catChipsEl.innerHTML = BUDGET_GROUPS.map(g=>`<div class="chip" data-group="${g.key}">${g.label}</div>`).join('');
+    catChipsEl.innerHTML = BUDGET_GROUPS.map(g =>
+      `<div class="filter-cat-group-label">${g.label}</div>` +
+      g.cats.map(c=>`<div class="chip" data-cat="${c}">${c}</div>`).join('')
+    ).join('');
     catChipsEl.dataset.bound = '1';
   }
   catChipsEl.querySelectorAll('.chip').forEach(ch=>{
-    const on = f.groups && f.groups.includes(ch.dataset.group);
+    const on = f.cats && f.cats.includes(ch.dataset.cat);
     ch.classList.toggle('active', on);
   });
   const listTotal = list.reduce((s,x)=>s+Number(x.amount),0);
@@ -1198,28 +1200,28 @@ document.getElementById('catStatsToggle').addEventListener('click',()=>toggleCol
 
 /* ==================== 花费明细筛选 ==================== */
 document.getElementById('filterStartDate').addEventListener('change', (e) => {
-  if (!state._expFilter) state._expFilter = { start:'', end:'', groups:[] };
+  if (!state._expFilter) state._expFilter = { start:'', end:'', cats:[] };
   state._expFilter.start = e.target.value;
   renderExpense();
 });
 document.getElementById('filterEndDate').addEventListener('change', (e) => {
-  if (!state._expFilter) state._expFilter = { start:'', end:'', groups:[] };
+  if (!state._expFilter) state._expFilter = { start:'', end:'', cats:[] };
   state._expFilter.end = e.target.value;
   renderExpense();
 });
 document.getElementById('filterCatChips').addEventListener('click', (e) => {
   const chip = e.target.closest('.chip');
   if (!chip) return;
-  if (!state._expFilter) state._expFilter = { start:'', end:'', groups:[] };
-  if (!state._expFilter.groups) state._expFilter.groups = [];
-  const gk = chip.dataset.group;
-  const idx = state._expFilter.groups.indexOf(gk);
-  if (idx >= 0) state._expFilter.groups.splice(idx, 1);
-  else state._expFilter.groups.push(gk);
+  if (!state._expFilter) state._expFilter = { start:'', end:'', cats:[] };
+  if (!state._expFilter.cats) state._expFilter.cats = [];
+  const cat = chip.dataset.cat;
+  const idx = state._expFilter.cats.indexOf(cat);
+  if (idx >= 0) state._expFilter.cats.splice(idx, 1);
+  else state._expFilter.cats.push(cat);
   renderExpense();
 });
 document.getElementById('filterResetBtn').addEventListener('click', () => {
-  state._expFilter = { start:'', end:'', groups:[] };
+  state._expFilter = { start:'', end:'', cats:[] };
   renderExpense();
 });
 
