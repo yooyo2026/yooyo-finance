@@ -490,12 +490,13 @@ input[type=number]{-moz-appearance:textfield;}
 
         <div class="card" style="background:var(--bg-card-2);border-style:dashed">
           <div class="card-title">📦 数据备份</div>
-          <div style="display:flex;gap:10px">
-            <button class="btn-secondary" id="exportBtn" style="flex:1;background:#fff;border-color:var(--blue);color:var(--blue-dark);font-size:14px;padding:12px">💾 导出数据</button>
-            <button class="btn-secondary" id="importBtn" style="flex:1;background:#fff;border-color:var(--purple);color:var(--purple);font-size:14px;padding:12px">📥 导入数据</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary" id="exportCsvBtn" style="flex:1;background:#fff;border-color:var(--green);color:var(--green);font-size:13px;padding:12px 4px">📊 导出表格</button>
+            <button class="btn-secondary" id="exportBtn" style="flex:1;background:#fff;border-color:var(--blue);color:var(--blue-dark);font-size:13px;padding:12px 4px">💾 导出备份</button>
+            <button class="btn-secondary" id="importBtn" style="flex:1;background:#fff;border-color:var(--purple);color:var(--purple);font-size:13px;padding:12px 4px">📥 导入数据</button>
           </div>
-          <input type="file" id="importFileInput" accept=".json" style="display:none">
-          <div style="font-size:11px;color:var(--label-tertiary);text-align:center;margin-top:8px">导出后可在更新App后导入恢复所有数据 ✨</div>
+          <input type="file" id="importFileInput" accept=".json,.csv" style="display:none">
+          <div style="font-size:11px;color:var(--label-tertiary);text-align:center;margin-top:8px">表格(CSV)用于 Excel/Numbers 查看 · 备份(JSON)用于导入恢复所有数据 ✨</div>
         </div>
       </section>
 
@@ -574,7 +575,7 @@ const DEFAULT_DATA = {
   _assetManual: { wxBalance:0, aliBalance:0, bankCard:0, deposit:0, finance:0, fund:0, intimatePay:4500 },
   budget: { warnPercent:80, savingGoal:0, yearSavingGoal:0,
     sub: {
-      '文具':0,'玩具':0,'衣物':0,'餐饮':0,'人情':0,'健康':0,'个人消耗':0,'个人其他':0,
+      '文具':0,'玩具1':0,'玩具2':0,'衣物':0,'餐饮':0,'人情':0,'健康':0,'个人消耗':0,'个人其他':0,
       '布料':0,'辅料':0,'快递':0,'工具':0,'海运':0,'工作其他':0,
       '日常消耗':0,'饮食':0,'保险':0,
       '英语课':0,'书籍':0,'其他':0,
@@ -610,12 +611,12 @@ const PAY_METHODS = [
   { key:'huabei', name:'花呗', icon:'🌺', cls:'ch-douyin', asset:null }
 ];
 const PURCHASE_PLATFORMS = ['淘宝','京东','拼多多','小红书','抖音','乐一番','挖煤姬','微信转账'];
-const EXPENSE_CATEGORIES = ['文具','玩具','衣物','餐饮','人情','健康','个人消耗','个人其他','布料','辅料','快递','工具','海运','工作其他','日常消耗','饮食','保险','英语课','书籍','其他','其他支出'];
+const EXPENSE_CATEGORIES = ['文具','玩具1','玩具2','衣物','餐饮','人情','健康','个人消耗','个人其他','布料','辅料','快递','工具','海运','工作其他','日常消耗','饮食','保险','英语课','书籍','其他','其他支出'];
 const BUDGET_GROUPS = [
-  { key:'personal', label:'👤 个人', cats:['文具','玩具','衣物','餐饮','人情','健康','个人消耗','个人其他'], color:'var(--blue)' },
+  { key:'personal', label:'👤 个人', cats:['文具','玩具1','衣物','餐饮','人情','健康','个人消耗','个人其他'], color:'var(--blue)' },
   { key:'work', label:'💼 工作', cats:['布料','辅料','快递','工具','海运','工作其他'], color:'var(--orange)' },
   { key:'family', label:'🏠 家庭', cats:['日常消耗','饮食','保险'], color:'var(--purple)' },
-  { key:'education', label:'📚 教育', cats:['英语课','玩具','书籍','其他'], color:'var(--teal)' },
+  { key:'education', label:'📚 教育', cats:['英语课','玩具2','书籍','其他'], color:'var(--teal)' },
   { key:'other', label:'📦 其他', cats:['其他支出'], color:'var(--label-tertiary)' }
 ];
 
@@ -635,6 +636,21 @@ function migrateState() {
   if (state._intimateQuota == null) {
     state._intimateQuota = (state._assetManual && state._assetManual.intimatePay) || 4500;
   }
+  // 玩具类别拆分迁移：历史「玩具」记录归入「玩具1」，预算同步
+  let migrated = false;
+  state.expense.forEach(x=>{ if (x.category === '玩具') { x.category = '玩具1'; migrated = true; } });
+  if (state.budget && state.budget.sub && ('玩具' in state.budget.sub)) {
+    state.budget.sub['玩具1'] = state.budget.sub['玩具'] || 0;
+    delete state.budget.sub['玩具'];
+    migrated = true;
+  }
+  // 补齐预算中缺失的类别键
+  if (state.budget && state.budget.sub) {
+    Object.keys(DEFAULT_DATA.budget.sub).forEach(k=>{
+      if (!(k in state.budget.sub)) { state.budget.sub[k] = 0; migrated = true; }
+    });
+  }
+  if (migrated) save();
 }
 migrateState();
 
@@ -769,8 +785,12 @@ function renderExpense() {
   if (!state._expFilter) state._expFilter = { start:'', end:'', cats:[] };
   const f = state._expFilter;
 
-  // 支出类别统计（始终为当前月，不受筛选影响）
-  const monthExpenses = state.expense.filter(x=>x.date.startsWith(monthKey()));
+  // 支出类别统计（跟随日期筛选；未选日期时默认当前月）
+  let statPool = state.expense;
+  if (f.start) statPool = statPool.filter(x=>x.date >= f.start);
+  if (f.end) statPool = statPool.filter(x=>x.date <= f.end);
+  if (!f.start && !f.end) statPool = statPool.filter(x=>x.date.startsWith(monthKey()));
+  const monthExpenses = statPool;
   const catStatsEl = document.getElementById('catStatsContent');
   if (!state._catStatsOpen) state._catStatsOpen = {};
   catStatsEl.innerHTML = BUDGET_GROUPS.map(g => {
@@ -1236,10 +1256,10 @@ function openSheet(type, editId) {
       <div class="field"><label>支付方式</label><div class="chip-row" id="pmChips">${PAY_METHODS.map(p=>`<div class="chip ${p.key===curPm?'active':''}" data-val="${p.key}">${p.icon} ${p.name}</div>`).join('')}</div></div>
       <div class="field"><label>支出类别</label>
         <div class="cat-groups">
-          <div class="cat-group-label">👤 个人</div><div class="chip-row">${['文具','玩具','衣物','餐饮','人情','健康','个人消耗','个人其他'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
+          <div class="cat-group-label">👤 个人</div><div class="chip-row">${['文具','玩具1','衣物','餐饮','人情','健康','个人消耗','个人其他'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
           <div class="cat-group-label">💼 工作</div><div class="chip-row">${['布料','辅料','快递','工具','海运','工作其他'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
           <div class="cat-group-label">🏠 家庭</div><div class="chip-row">${['日常消耗','饮食','保险'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
-          <div class="cat-group-label">📚 教育</div><div class="chip-row">${['英语课','玩具','书籍','其他'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
+          <div class="cat-group-label">📚 教育</div><div class="chip-row">${['英语课','玩具2','书籍','其他'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
           <div class="cat-group-label">📦 其他</div><div class="chip-row">${['其他支出'].map(c=>`<div class="chip ${c===curCat?'active':''}" data-val="${c}">${c}</div>`).join('')}</div>
         </div>
       </div>
@@ -1516,6 +1536,53 @@ document.getElementById('editAssetsBtn').addEventListener('click',()=>{
 switchPage('expense');
 
 /* ==================== 数据导入导出 ==================== */
+// CSV 工具：字段转义 / 解析
+function csvEsc(v){ v = String(v==null?'':v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+function parseCsv(text) {
+  const rows = []; let row = [], field = '', inQ = false;
+  for (let i=0; i<text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i+1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(field); field=''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row=[]; field=''; }
+      else if (c !== '\r') field += c;
+    }
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+/* 导出表格（CSV，供 Excel/Numbers 查看分析） */
+document.getElementById('exportCsvBtn').addEventListener('click', () => {
+  const rows = [['类型','日期','金额','分类','方式/渠道','备注']];
+  state.expense.forEach(x => {
+    const pm = PAY_METHODS.find(p=>p.key===x.method);
+    rows.push(['支出', x.date, Number(x.amount)||0, x.category||'', pm?pm.name:(x.method||''), x.note||'']);
+  });
+  state.income.forEach(x => {
+    const m = INCOME_METHODS.find(m=>m.key===x.method);
+    const c = INCOME_CHANNELS.find(c=>c.key===x.channel);
+    const chName = c ? c.name : ((ALL_INCOME_TYPES.find(t=>t.key===x.channel)||{}).name || x.channel || '');
+    rows.push(['收入', x.date, Number(x.amount)||0, m?m.name:(x.method||''), chName, x.note||'']);
+  });
+  const csv = '\uFEFF' + rows.map(r=>r.map(csvEsc).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Yooyo财务表格_' + todayStr() + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('表格已导出，可用 Excel/Numbers 打开 ✅');
+});
+
+/* 导出备份（JSON，用于导入恢复） */
 document.getElementById('exportBtn').addEventListener('click', () => {
   const data = {
     income: state.income,
@@ -1547,34 +1614,64 @@ document.getElementById('importFileInput').addEventListener('change', (e) => {
   const reader = new FileReader();
   reader.onload = function(ev) {
     try {
-      const data = JSON.parse(ev.target.result);
-      if (!data.income || !data.expense) {
-        toast('文件格式不正确，请检查');
-        return;
-      }
-      // 确认覆盖
-      const incomeCount = data.income.length;
-      const expenseCount = data.expense.length;
-      if (confirm(`即将导入数据：\n\n收入记录 ${incomeCount} 条\n花费记录 ${expenseCount} 条\n\n当前数据将被覆盖，确认导入？`)) {
-        state.income = data.income;
-        state.expense = data.expense;
-        state._assetHistory = Array.isArray(data._assetHistory) ? data._assetHistory : [];
-        state._intimateQuota = data._intimateQuota != null ? data._intimateQuota : (data._assetManual && data._assetManual.intimatePay) || 4500;
-        // 旧备份只有 _assetManual 时，转为初始快照
-        if (!state._assetHistory.length && data._assetManual) {
-          const m = data._assetManual;
-          state._assetHistory = [{ date:'2000-01-01', values: { wxBalance:m.wxBalance||0, aliBalance:m.aliBalance||0, bankCard:m.bankCard||0, deposit:m.deposit||0, finance:m.finance||0, fund:m.fund||0 } }];
+      const text = ev.target.result;
+      const isJson = text.trim().startsWith('{');
+      let incCount = 0, expCount = 0, applyFn = null;
+
+      if (isJson) {
+        const data = JSON.parse(text);
+        if (!data.income || !data.expense) { toast('文件格式不正确，请检查'); return; }
+        incCount = data.income.length; expCount = data.expense.length;
+        applyFn = () => {
+          state.income = data.income;
+          state.expense = data.expense;
+          state._assetHistory = Array.isArray(data._assetHistory) ? data._assetHistory : [];
+          state._intimateQuota = data._intimateQuota != null ? data._intimateQuota : (data._assetManual && data._assetManual.intimatePay) || 4500;
+          // 旧备份只有 _assetManual 时，转为初始快照
+          if (!state._assetHistory.length && data._assetManual) {
+            const m = data._assetManual;
+            state._assetHistory = [{ date:'2000-01-01', values: { wxBalance:m.wxBalance||0, aliBalance:m.aliBalance||0, bankCard:m.bankCard||0, deposit:m.deposit||0, finance:m.finance||0, fund:m.fund||0 } }];
+          }
+          if (data.budget) state.budget = data.budget;
+        };
+      } else {
+        // CSV 表格导入
+        const rows = parseCsv(text.replace(/^\uFEFF/, ''));
+        let start = rows.findIndex(r => r.length >= 3 && r[0] && String(r[0]).includes('类型'));
+        if (start < 0) start = 0;
+        const inc = [], exp = [];
+        for (let i = start+1; i < rows.length; i++) {
+          const r = rows[i].map(s => String(s==null?'':s).trim());
+          const [type, date, amount, cat, ch, note] = r;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(date||'')) continue;
+          const amt = parseFloat(amount);
+          if (!amt || amt <= 0) continue;
+          if (type === '支出') {
+            const pm = PAY_METHODS.find(p=>p.name===ch);
+            exp.push({ id: uid(), date, amount: amt, category: cat || '其他支出', method: pm ? pm.key : 'wechat_balance', note: note || '' });
+          } else if (type === '收入') {
+            const m = INCOME_METHODS.find(x=>x.name===cat);
+            const c = INCOME_CHANNELS.find(x=>x.name===ch);
+            inc.push({ id: uid(), date, amount: amt, channel: c ? c.key : 'weixin', method: m ? m.key : 'bag', note: note || '' });
+          }
         }
-        if (data.budget) state.budget = data.budget;
+        if (!inc.length && !exp.length) { toast('表格中没有找到有效记录'); return; }
+        incCount = inc.length; expCount = exp.length;
+        applyFn = () => { state.income = inc; state.expense = exp; };
+      }
+
+      if (confirm(`即将导入数据：\n\n收入记录 ${incCount} 条\n花费记录 ${expCount} 条\n\n当前记录将被覆盖，确认导入？`)) {
+        applyFn();
         state._collapse = {};
         state._assetOpen = false;
         state._asOf = todayStr();
+        migrateState();
         save();
         render();
         toast('数据导入成功 🎉');
       }
     } catch(err) {
-      toast('文件解析失败，请确认是有效的备份文件');
+      toast('文件解析失败，请确认是有效的备份/表格文件');
       console.error('Import error:', err);
     }
     e.target.value = '';
